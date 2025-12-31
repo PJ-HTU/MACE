@@ -1,10 +1,12 @@
 """
-smoke_test.py - 终极修复版本
+smoke_test.py - 终极修复版本 + 多问题类型支持
 
 处理所有可能的代码格式问题:
 - ```python 标记
 - *** 标记
 - 嵌套的代码块
+
+新增: 支持多问题类型 (tsp, jssp, cvrp, psp)
 """
 
 from openai import OpenAI
@@ -20,9 +22,11 @@ class SmokeTestRunner:
     
     def __init__(
         self,
+        problem: str = None,  # ✅ 新增: 问题类型参数，默认tsp保持向后兼容
         max_fix_attempts: int = 3,
         api_key: str = None
     ):
+        self.problem = problem  # ✅ 保存问题类型
         self.max_fix_attempts = max_fix_attempts
         self.api_key = api_key or os.environ.get("DEEPSEEK_API_KEY")
     
@@ -77,6 +81,7 @@ class SmokeTestRunner:
             
             print(f"\n{'='*80}")
             print(f"🧪 运行Smoke Test: {heuristic_name}")
+            print(f"📋 问题类型: {self.problem}")  # ✅ 显示问题类型
             print(f"{'='*80}")
             
             # 🆕 在测试前先清理文件
@@ -100,8 +105,8 @@ class SmokeTestRunner:
                     f.write(cleaned_code)
                 print(f"✓ 代码已清理并保存")
             
-            # 测试参数
-            problem = 'tsp'
+            # ✅ 测试参数 - 使用动态问题类型
+            problem = self.problem  # ✅ 使用实例的问题类型
             test_data = "smoke_data"
             llm_config_file = os.path.join("output", "llm_config", "azure_gpt_4o.json")
             heuristic_dir = "basic_heuristics"
@@ -110,7 +115,7 @@ class SmokeTestRunner:
             
             # 运行测试
             validation_result = run_hyper_heuristic(
-                problem=problem,
+                problem=problem,  # ✅ 传入正确的问题类型
                 heuristic=heuristic_name,
                 llm_config_file=llm_config_file,
                 heuristic_dir=heuristic_dir,
@@ -296,9 +301,31 @@ Fixed code:"""
         return False, current_file
 
 
-def standalone_smoke_test(heuristic_file: str, api_key: str = None) -> bool:
-    """独立的烟雾测试函数"""
+def standalone_smoke_test(
+    heuristic_file: str, 
+    problem: str = None,  # ✅ 新增: 问题类型参数，默认tsp保持向后兼容
+    api_key: str = None
+) -> bool:
+    """
+    独立的烟雾测试函数
+    
+    Args:
+        heuristic_file: 启发式文件路径
+        problem: 问题类型 (tsp, jssp, cvrp, psp)，默认 "tsp"
+        api_key: API密钥
+    
+    Returns:
+        bool: 测试是否通过
+    
+    Example:
+        # TSP问题
+        success = standalone_smoke_test("heuristic.py", problem="tsp")
+        
+        # JSSP问题
+        success = standalone_smoke_test("heuristic.py", problem="jssp")
+    """
     tester = SmokeTestRunner(
+        problem=problem,  # ✅ 传入问题类型
         max_fix_attempts=3,
         api_key=api_key
     )
