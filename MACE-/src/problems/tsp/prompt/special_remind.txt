@@ -1,2 +1,0 @@
-Ensure your heuristic produces valid and complete results.
-CRITICAL: Your algorithm MUST visit ALL customers.
