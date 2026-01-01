@@ -70,6 +70,8 @@ Uses a minimax MILP formulation to select the optimal subset of heuristics from 
 **Multi-Budget Execution**:  
 Stage Two runs independently under different time budgets (Tₘₐₓ), producing portfolios spanning the quality-time spectrum. This enables practitioners to select appropriate algorithms based on operational urgency—fast portfolios for emergency decisions, balanced portfolios for routine operations, or high-quality portfolios for strategic planning.
 
+---
+
 ## Usage Guide
 
 ### Stage One: Generating Problem Components
