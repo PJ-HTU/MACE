@@ -1,0 +1,2 @@
+Ensure your heuristic produces valid and complete results.
+CRITICAL: Your algorithm MUST visit ALL customers. Only return None when get_unvisited_customers() returns empty list.

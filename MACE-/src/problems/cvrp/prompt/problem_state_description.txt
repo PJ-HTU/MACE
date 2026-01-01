@@ -1,0 +1,26 @@
+- instance_data:
+    - node_num (int): The total number of nodes in the problem.
+    - distance_matrix (numpy.ndarray): A 2D array representing the distances between nodes.
+    - vehicle_num (int): The total number of vehicles.
+    - capacity (int): The capacity for each vehicle and all vehicles share the same value.
+    - depot (int): The index for depot node.
+    - demands (numpy.ndarray): The demand of each node.
+
+- solution:
+    - current_solution (Solution): Current solution instance.
+
+- key_item:
+    - total_current_cost (int): The total cost of the current solution for all vehicles.
+
+- helper_function:
+    - get_problem_state (callable): def get_problem_state(solution: Solution) -> dict: The function to get the complete problem state for given solution without modifying it. Returns a dictionary containing 'total_scheduling_cost' and other state information.
+    - validation_solution (callable): def validation_solution(solution: Solution = None) -> bool: The function to check whether the solution is valid according to all mathematical model constraints. If solution is None, checks current solution. Returns True if valid, False otherwise.
+    - get_unvisited_customers (callable): def get_unvisited_customers(solution: Solution = None) -> list[int]: Get list of customer node IDs that have not been visited in any route. Excludes depot from the result. If solution is None, uses current solution. Returns list of integers representing unvisited customer IDs.
+    - get_route_load (callable): def get_route_load(vehicle_id: int, solution: Solution = None) -> float: Calculate the total demand of all customers in a specific vehicle's route. Excludes depot demand from calculation (only counts customer nodes). If solution is None, uses current solution. Returns float representing the total load of the route.
+    - can_add_to_route (callable): def can_add_to_route(vehicle_id: int, customer: int, solution: Solution = None) -> bool: Check if a customer can be added to a vehicle's route without violating capacity constraint. Considers current route load plus customer demand versus vehicle capacity. If solution is None, uses current solution. Returns True if the customer can be added without exceeding capacity, False otherwise.
+
+- instance_problem_state:
+    ...
+
+- solution_problem_state:
+    ...
