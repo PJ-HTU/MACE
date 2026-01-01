@@ -1,0 +1,155 @@
+user
+I am working on Hyper-heuristics for Combinatorial Operation (CO) problem.
+
+Currently, I am working on jssp problem:
+Job Shop Scheduling Problem (JSSP) involves scheduling a series of jobs, each comprising a sequence of operations, across different machines to optimize production efficiency. In this variant, there is a one-to-one correspondence between machines and operation types, ensuring that each operation is carried out by a specific machine. Consequently, the number of operations (N) matches the number of machines, and each job includes these N operations precisely once.
+
+
+Please consider is jssp a combinatorial operation problem and can be solved by heuristics?
+If you think this problem is not a combinatorial operation problem or the solution, operator, data are incorrect, response ***is_cop:no*** to me, or response ***is_cop:yes***.
+
+The response format is very important. For better communication, please respond to me in this format:
+***is_cop:yes/no***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***is_cop:yes***
+
+Yes, the Job Shop Scheduling Problem (JSSP) is a well-established Combinatorial Optimization (CO) problem. It involves discrete decision-making to assign operations to machines while respecting precedence constraints and machine availability, typically aiming to minimize objectives like makespan. As an NP-hard problem, it's not solvable in polynomial time for large instances, making heuristics (e.g., genetic algorithms, simulated annealing, tabu search) and hyper-heuristics highly suitable and commonly applied approaches. Your description aligns with the standard formulation, including the one-to-one machine-operation correspondence and each job having exactly one operation per machine. If you're working on hyper-heuristics for JSSP, focusing on selection and generation of low-level heuristics for dispatching rules or neighborhood operators would be a strong direction.
+------------------------------------------------------------------------------------
+
+user
+We aim to collaboratively create the functions to generate some problem states(statistics data), which captures the high-level features of problem instance for the jssp. 
+
+These functions will be underpinned by rigorous statistical analysis and domain-specific knowledge, ensuring they are both accurate and relevant.
+
+
+In determining the optimal problem states to represent instance, we must adhere to the following criteria:
+1. The data representation should be succinct to minimize computational load while retaining sufficient granularity to recognize the feature of the problem and solution.
+2. It must incorporate unique attributes that aid in the clear distinction between different instances.
+3. The most important, these data only focus on instance and has nothing to do with solution.
+
+Now, please tell me which statistical data are best serve as instance problem state.
+
+The response format is very important. For better communication, please respond to me in this format:
+***instance_problem_state:
+problem_state_name;how_to_calculate;reason
+problem_state_name;how_to_calculate;reason
+....
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***instance_problem_state:
+num_jobs;directly count the number of jobs in the instance;n;Fundamental size parameter that scales the problem complexity and total workload, essential for distinguishing instance scale without solution involvement.
+num_machines;directly count the number of machines in the instance;m;Core structural dimension, as each machine handles one operation type per job, influencing routing constraints and parallelism.
+avg_processing_time;sum of all operation processing times divided by total operations (n * m);Provides a normalized measure of typical operation duration across the instance, capturing overall time scale succinctly.
+coeff_variation_processing_times;standard deviation of all processing times divided by average processing time;Quantifies the relative variability in operation durations, a key indicator of scheduling irregularity and difficulty in resource allocation.
+machine_load_variance;variance across machines of the sum of processing times assigned to each machine;Highlights workload imbalance among machines, crucial for identifying potential bottlenecks in the instance structure.
+max_processing_time;maximum processing time among all operations;Captures the longest single operation, which can disproportionately affect critical paths and instance distinguishability.
+***
+These features are derived from standard JSSP instance characteristics, focusing on static properties like size, processing time distributions, and machine assignments. They are computationally lightweight (O(n*m) time to compute, as they involve simple sums, means, and variances over the processing time matrix and machine sums). In hyper-heuristics, such features help in selecting appropriate low-level heuristics by reflecting instance hardness—e.g., high variance might favor dispatching rules robust to variability. For route diversity (job permutations), a more advanced feature like average Kendall tau distance between job sequences could be added if needed, but it's omitted here for succinctness as the above already provide strong discrimination without sequence-specific computation. If your instances vary in routing flexibility, we can refine further.
+------------------------------------------------------------------------------------
+
+user
+Try to implement the get_instance_problem_state function in python:
+def get_instance_problem_state(instance_data: dict) -> dict:
+
+The input is instance_data
+- job_operation_sequence (numpy.ndarray): A list of jobs where each job is a list of operations in target sequence.
+    - job_operation_time (numpy.ndarray): The time cost for each operation in target job.
+    - job_num (int): The total number of jobs in the problem.
+    - machine_num (int): The total number of machines in the problem, also as operation num.
+
+The output is algo a dict, which contains the following problem states as keys: num_jobs,num_machines,avg_processing_time,coeff_variation_processing_times,machine_load_variance,max_processing_time.
+
+Please note:
+1. Never modify the instance_data.
+2. The name of function must be get_instance_problem_state.
+3. No any omissions or placeholders, I'm just going to use the code.
+4. Comments in the code are very important.
+
+
+The response format is very important. For better communication, please respond to me in this format:
+***python_code:
+import library (if necessary)
+def get_instance_problem_state(instance_data: dict) -> dict:
+    """Extract instance problem state from instance data.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+
+    Returns:
+        dict: The dictionary contains the instance problem state with:
+            - problem_state_name (type): description
+            - problem_state_name (type): description
+            ...
+    """
+    ...
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***python_code:
+import numpy as np
+
+def get_instance_problem_state(instance_data: dict) -> dict:
+    """Extract instance problem state from instance data.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+
+    Returns:
+        dict: The dictionary contains the instance problem state with:
+            - num_jobs (int): The total number of jobs in the problem.
+            - num_machines (int): The total number of machines in the problem.
+            - avg_processing_time (float): The average processing time across all operations.
+            - coeff_variation_processing_times (float): The coefficient of variation of processing times.
+            - machine_load_variance (float): The variance of total processing times (loads) across machines.
+            - max_processing_time (float): The maximum processing time among all operations.
+    """
+    # Extract basic parameters from instance_data without modification
+    job_num = instance_data['job_num']
+    machine_num = instance_data['machine_num']
+    processing_times = instance_data['job_operation_time']  # Assumed to be a 2D numpy array of shape (job_num, machine_num)
+    
+    # Calculate number of jobs and machines directly
+    num_jobs = job_num
+    num_machines = machine_num
+    
+    # Calculate average processing time: total sum divided by total number of operations
+    total_sum = np.sum(processing_times)
+    total_operations = job_num * machine_num
+    avg_processing_time = total_sum / total_operations if total_operations > 0 else 0.0
+    
+    # Calculate coefficient of variation: standard deviation divided by mean
+    std_processing_times = np.std(processing_times)
+    coeff_variation_processing_times = (std_processing_times / avg_processing_time) if avg_processing_time > 0 else 0.0
+    
+    # Calculate machine load variance: first compute sum of processing times per machine (column sums),
+    # then compute variance across these machine loads
+    machine_loads = np.sum(processing_times, axis=0)  # Shape: (machine_num,)
+    machine_load_variance = np.var(machine_loads)
+    
+    # Calculate maximum processing time across all operations
+    max_processing_time = np.max(processing_times)
+    
+    # Return the problem state as a dictionary
+    return {
+        'num_jobs': num_jobs,
+        'num_machines': num_machines,
+        'avg_processing_time': avg_processing_time,
+        'coeff_variation_processing_times': coeff_variation_processing_times,
+        'machine_load_variance': machine_load_variance,
+        'max_processing_time': max_processing_time
+    }
+***
+This implementation assumes `job_operation_time` is a 2D NumPy array of shape `(job_num, machine_num)` where each entry represents the processing time for the corresponding job's operation on that machine. The `job_operation_sequence` is not used here, as the specified features are purely based on processing times and instance dimensions, aligning with the instance-focused criteria (no solution involvement). Edge cases like zero total operations or zero average are handled to avoid division by zero. The code is efficient (O(n*m) time complexity) and does not modify the input dictionary. If the array shapes differ or additional validation is needed (e.g., checking for non-negative times), it can be extended, but this matches the requirements directly.
+------------------------------------------------------------------------------------
+

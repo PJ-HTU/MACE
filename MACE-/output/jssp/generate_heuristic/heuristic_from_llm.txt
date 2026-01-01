@@ -1,0 +1,118 @@
+user
+I am working on Hyper-heuristics for Combinatorial Operation (CO) problem.
+
+Currently, I am working on jssp problem:
+Job Shop Scheduling Problem (JSSP) involves scheduling a series of jobs, each comprising a sequence of operations, across different machines to optimize production efficiency. In this variant, there is a one-to-one correspondence between machines and operation types, ensuring that each operation is carried out by a specific machine. Consequently, the number of operations (N) matches the number of machines, and each job includes these N operations precisely once.
+
+To support different heuristic algorithms, I build the Solution and Operator framework.
+The Solution is designed as:
+class Solution:
+    """The solution for the Job Shop Scheduling Problem (JSSP).
+A list of lists where each sublist represents the sequence of jobs scheduled on a machine, identified by its index in the outer list.
+Each job is represented by its integer identifier and is processed in the order specified within the sublist.
+Each sublist in 'job_sequences' corresponds to a machine's job processing sequence, with machines sorted by their identifier (index in the outer list).
+Each job within a sublist is sorted by its scheduled order of execution on that machine.
+Job matrix records the target operation(machine) sequence in job."""
+    def __init__(self, job_sequences: list[list[int]], job_operation_sequence: list[list[int]], job_operation_index: list[int]):
+        self.job_sequences = job_sequences
+        self.job_operation_sequence = job_operation_sequence
+        self.job_operation_index = job_operation_index
+Operator servers as a mechanism to modify solution, which enables the application of heuristic algorithms. 
+To support heuristic algorithm, we have build the following operators:
+class AdvanceOperator(BaseOperator):
+    """AdvanceOperator is responsible for advancing the next operation in the job's processing sequence.
+This operator appends the next operation of the specified job to the processing queue of the machine that is scheduled to execute the operation.
+It identifies the appropriate machine based on the job's current operation index and the job matrix within the provided Solution instance."""
+    def __init__(self, job_id: int):
+        self.job_id = job_id
+    def run(self, solution: Solution) -> Solution:
+        new_job_sequences = [ops[:] for ops in solution.job_sequences]
+        machine_id = solution.job_operation_sequence[self.job_id][solution.job_operation_index[self.job_id]]
+        new_job_sequences[machine_id].append(self.job_id)
+        job_operation_index = solution.job_operation_index
+        job_operation_index[self.job_id] += 1
+        return Solution(new_job_sequences, solution.job_operation_sequence, job_operation_index)
+
+In pursuit of augmenting our heuristic algorithmic suite, we require the following standardized heuristic function signature:
+def heuristic(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[TargetOperatorType, dict]:
+The inputs are:
+problem_state (dict): The dictionary contains the problem state with:
+    - job_operation_sequence (numpy.ndarray): A list of jobs where each job is a list of operations in target sequence.
+    - job_operation_time (numpy.ndarray): The time cost for each operation in target job.
+    - job_num (int): The total number of jobs in the problem.
+    - machine_num (int): The total number of machines in the problem, also as operation num.
+    - current_solution (Solution): Current solution instance.
+    - current_makespan (int): The time cost for current operation jobs, also known as the current_makespan.
+    - get_problem_state (callable): def get_problem_state(solution: Solution) -> dict: The function to get the complete problem state for given solution without modifying it. Returns a dictionary containing 'total_scheduling_cost' and other state information.
+    - validation_solution (callable): def validation_solution(solution: Solution = None) -> bool: The function to check whether the solution is valid according to all mathematical model constraints. If solution is None, checks current solution. Returns True if valid, False otherwise.
+    - get_schedulable_jobs (callable): def get_schedulable_jobs(solution: Solution = None) -> list[int]: Get list of job IDs that have remaining operations to schedule. A job is schedulable if its current operation index is less than the total number of operations in its sequence. If solution is None, uses current solution. Returns list of integers representing schedulable job IDs.
+    - get_next_operation_time (callable): def get_next_operation_time(job_id: int, solution: Solution = None) -> int: Get the processing time of the next unscheduled operation for a specific job. Uses the job's current operation index to retrieve the corresponding processing time from the job_operation_time matrix. If solution is None, uses current solution. Returns integer representing the processing time of the next operation. Raises IndexError if the job has no remaining operations.
+    - get_total_remaining_time (callable): def get_total_remaining_time(job_id: int, solution: Solution = None) -> int: Calculate the sum of processing times for all remaining unscheduled operations of a specific job. Considers all operations from the current operation index to the end of the job's sequence. If solution is None, uses current solution. Returns integer representing the total remaining processing time for the job.
+    - num_jobs (int): The total number of jobs in the problem.
+    - num_machines (int): The total number of machines in the problem.
+    - avg_processing_time (float): The average processing time across all operations.
+    - coeff_variation_processing_times (float): The coefficient of variation of processing times.
+    - machine_load_variance (float): The variance of total processing times (loads) across machines.
+    - max_processing_time (float): The maximum processing time among all operations.
+    - scheduled_operations_ratio (float): Ratio of scheduled operations to total operations.
+    - current_makespan (float): Maximum completion time among scheduled operations.
+    - avg_machine_utilization (float): Average utilization across machines based on busy time over makespan.
+    - remaining_workload (float): Total processing time of all unscheduled operations.
+    - max_machine_queue_length (int): Maximum number of eligible unscheduled operations waiting for any machine.
+    - critical_path_length (float): Length (time) of the longest path to a scheduled operation.
+    - avg_operation_waiting_time (float): Average waiting time of scheduled operations beyond their job release.
+algorithm_data(dict): Algorithm data contains the data that necessary for some algorithms.
+Other hyper-parameters in kwargs.
+The outputs includes the operator that must be an instance of a predefined target operator type and updated algorithm dict, which contains new information for future work for both this or other algorithm.
+
+Please consider is jssp a combinatorial operation problem and can be solved by heuristics?
+If you think this problem is not a combinatorial operation problem or the solution, operator, data are incorrect, response ***is_cop:no*** to me, or response ***is_cop:yes***.
+
+The response format is very important. For better communication, please respond to me in this format:
+***is_cop:yes/no***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***is_cop:yes***
+
+Yes, the Job Shop Scheduling Problem (JSSP) is a classic example of a combinatorial optimization (CO) problem. It involves discrete decisions—such as sequencing operations on machines while respecting job precedence constraints and machine availability—to minimize objectives like makespan, which makes it inherently combinatorial. JSSP is NP-hard, so exact methods are impractical for large instances, and it's routinely solved using heuristics (e.g., dispatching rules like SPT or LPT), metaheuristics (e.g., genetic algorithms, tabu search), and hyper-heuristics, which aligns well with your framework of selecting operators to build partial schedules incrementally.
+
+Your Solution and Operator design appears sound for a constructive heuristic approach: the job_sequences represent machine-specific permutations (building the schedule disjunctively), job_operation_sequence captures the conjunctive (job-internal) order, and job_operation_index tracks progress per job. The AdvanceOperator effectively implements a selection heuristic by advancing a specific job's next operation to its machine queue, enabling priority-based dispatching. This setup supports hyper-heuristics by allowing the selection of which job to advance next based on the provided problem_state features (e.g., using remaining workload or machine loads for informed decisions). The heuristic signature you defined is appropriate for outputting a TargetOperatorType instance (like AdvanceOperator(job_id)) and updating algorithm_data for iterative improvement. If you're implementing specific rules (e.g., Apparent Tardiness Cost or Critical Path), ensure validation_solution checks for feasibility like no machine overlaps. Overall, this is a solid foundation for hyper-heuristic application to JSSP.
+------------------------------------------------------------------------------------
+
+user
+I need your help to design different 5 basic heuristics for the jssp problem.
+
+## Heuristic Requirements:
+1. **Constructive Nature**: Each heuristic must be constructive (or constructive followed by improvement), and build solutions step-by-step from scratch.
+
+2. **Diversity**: The 5 heuristics should represent different strategies to ensure diversity in solution approaches.
+
+The problem will work on following data.
+Please try to understand the data and generate based on them, especially setting the default value for hyper-parameters:
+All data is possible
+
+The response format is very important. For better communication, please respond to me in this format:
+***heuristic:
+heuristic_name: only text description
+heuristic_name: only text description
+....
+***
+Ensure there is no other content (including blank lines) inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***heuristic:
+Random Selection: Randomly selects one job from the list of schedulable jobs returned by get_schedulable_jobs() to advance its next operation. No hyperparameters required.
+Shortest Processing Time (SPT): Selects the schedulable job with the smallest processing time for its next operation, obtained via get_next_operation_time(job_id). If ties, pick the lowest job ID. No hyperparameters.
+Longest Processing Time (LPT): Selects the schedulable job with the largest processing time for its next operation, using get_next_operation_time(job_id). If ties, pick the lowest job ID. No hyperparameters.
+Least Remaining Workload (LWR): Selects the schedulable job with the smallest total remaining processing time, computed by get_total_remaining_time(job_id). If ties, pick the lowest job ID. No hyperparameters.
+Most Remaining Workload (MWR): Selects the schedulable job with the largest total remaining processing time, using get_total_remaining_time(job_id). If ties, pick the lowest job ID. No hyperparameters.
+***
+
+These heuristics are all purely constructive, iteratively selecting a job to advance via AdvanceOperator until all operations are scheduled (i.e., no schedulable jobs left). They leverage the provided callables in problem_state for efficiency without needing to recompute full states each time. Diversity comes from varying priorities: randomness for exploration, SPT/LPT for operation duration focus, and LWR/MWR for job-level workload balance. Each returns the operator instance and an unchanged algorithm_data dict (or minimally updated if tracking selections). For implementation, inside the function: fetch schedulable_jobs = problem_state['get_schedulable_jobs'](), then evaluate candidates based on the rule, select job_id, create AdvanceOperator(job_id), and return (operator, algorithm_data). If no schedulable jobs, you might want to handle termination, but assuming the caller manages the loop. These are basic dispatching rules adapted to your incremental operator framework, proven effective in JSSP literature for generating diverse initial solutions in hyper-heuristics.
+------------------------------------------------------------------------------------
+

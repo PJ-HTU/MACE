@@ -1,0 +1,20 @@
+[
+    {
+        "role": "user",
+        "content": [
+            {
+                "type": "text",
+                "text": "I am working on Hyper-heuristics for Combinatorial Operation (CO) problem.\n\nCurrently, I am working on jssp problem:\nJob Shop Scheduling Problem (JSSP) involves scheduling a series of jobs, each comprising a sequence of operations, across different machines to optimize production efficiency. In this variant, there is a one-to-one correspondence between machines and operation types, ensuring that each operation is carried out by a specific machine. Consequently, the number of operations (N) matches the number of machines, and each job includes these N operations precisely once.\n\n\nPlease consider is jssp a combinatorial operation problem and can be solved by heuristics?\nIf you think this problem is not a combinatorial operation problem or the solution, operator, data are incorrect, response ***is_cop:no*** to me, or response ***is_cop:yes***.\n\nThe response format is very important. For better communication, please respond to me in this format:\n***is_cop:yes/no***\nEnsure there is no other content inside the ***, and analysis outside *** is welcome.\nIf you have no information to provide, simply respond with ***None***."
+            }
+        ]
+    },
+    {
+        "role": "assistant",
+        "content": [
+            {
+                "type": "text",
+                "text": "***is_cop:yes***\n\nYes, the Job Shop Scheduling Problem (JSSP) is a well-established Combinatorial Optimization (CO) problem. It involves discrete decision-making to assign operations to machines while respecting precedence constraints and machine availability, typically aiming to minimize objectives like makespan. As an NP-hard problem, it's not solvable in polynomial time for large instances, making heuristics (e.g., genetic algorithms, simulated annealing, tabu search) and hyper-heuristics highly suitable and commonly applied approaches. Your description aligns with the standard formulation, including the one-to-one machine-operation correspondence and each job having exactly one operation per machine. If you're working on hyper-heuristics for JSSP, focusing on selection and generation of low-level heuristics for dispatching rules or neighborhood operators would be a strong direction."
+            }
+        ]
+    }
+]
