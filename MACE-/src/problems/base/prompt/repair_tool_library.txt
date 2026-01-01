@@ -1,0 +1,91 @@
+Your previously generated tool library code for the {problem} problem encountered an error during smoke testing.
+
+## Error Message
+{error_message}
+
+## Your Previous Code
+{old_code}
+
+## Your Task
+
+Fix the error in the tool library code while maintaining the original functionality.
+
+### Common Issues to Check
+
+1. **Import Errors**
+   - Missing imports (numpy, typing, etc.)
+   - Incorrect module paths
+   - Circular import issues
+
+2. **Type Errors**
+   - Incorrect type hints
+   - Mismatched parameter types
+   - Wrong return types
+
+3. **Logic Errors**
+   - Index out of bounds
+   - Division by zero
+   - Empty list/array access
+   - None value access
+
+4. **Syntax Errors**
+   - Missing colons, parentheses
+   - Incorrect indentation
+   - Invalid Python syntax
+
+5. **Function Signature Issues**
+   - Missing required parameters
+   - Incorrect default values
+   - Parameter order problems
+
+### Requirements
+
+- Fix the specific error mentioned above
+- Preserve all tool functions and their functionality
+- Ensure all functions have proper docstrings
+- Maintain efficient implementations
+- Handle edge cases properly
+- Do NOT modify function inputs (solutions, instance_data, etc.)
+
+### Testing Checklist
+
+After fixing, verify:
+- [ ] All imports are correct
+- [ ] All functions have proper signatures
+- [ ] All functions have docstrings
+- [ ] Edge cases are handled (empty solutions, etc.)
+- [ ] No input modification occurs
+- [ ] Type hints are correct
+
+## Output Format
+
+Provide your corrected code in this format:
+
+***python_code:
+# Corrected Tool Library for {problem}
+# Fixed: [brief description of what was fixed]
+
+import numpy as np
+from typing import List, Tuple, Dict, Optional, Set
+# Other necessary imports...
+
+# Include ALL tool functions (corrected and unchanged ones)
+
+def tool_function_1(...):
+    """Docstring."""
+    # Implementation
+    pass
+
+def tool_function_2(...):
+    """Docstring."""
+    # Implementation
+    pass
+
+# ... all other tool functions
+***
+
+CRITICAL:
+- Only put code inside ***python_code:...*** markers
+- Include the COMPLETE tool library (all functions, all imports)
+- The code should be ready to execute without any modifications
+- Add a comment at the top briefly explaining what was fixed

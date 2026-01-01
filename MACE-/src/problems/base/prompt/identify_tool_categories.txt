@@ -1,0 +1,130 @@
+You are an expert in combinatorial optimization and algorithm design.
+
+I am working on the {problem} problem:
+{task_description}
+
+I have already designed:
+1. **State Space (S)**: Problem states including both static instance features and dynamic solution progress
+2. **Action Space (A)**: Constructive and improvement actions for building and refining solutions
+
+Now I need to identify **Tool Functions** that encapsulate **complex domain logic** to simplify heuristic implementation.
+
+## Tool Library Philosophy
+
+According to MACE framework:
+> "Tool Library encapsulates complex domain logic as callable modules, enabling LLMs to leverage domain knowledge through tool invocation rather than inferring it from scratch."
+
+**Key Principle**: Tools should **reduce the complexity** of heuristic code by handling:
+- Complex calculations that require domain knowledge
+- Algorithms that are hard for LLMs to implement correctly
+- Reusable operations that appear in multiple heuristics
+- Computationally intensive procedures that need optimization
+
+**NOT for Tools**:
+- Simple state queries (already in problem_state)
+- Basic validation (already available via validation_solution)
+- Direct action operations (already in Action Space)
+- Trivial getters/setters
+
+## Context
+
+### State Space Information (excerpt):
+```python
+{state_info}
+```
+
+### Action Space Information (excerpt):
+```python
+{action_info}
+```
+
+## Your Task
+
+Identify **3-4 categories** of tools that encapsulate **complex domain logic** specific to this problem.
+
+**Focus on**:
+1. **Domain-specific calculations** that require expert knowledge
+2. **Algorithms** that are hard to implement correctly (e.g., MST, shortest path)
+3. **Evaluation functions** for comparing solutions or moves
+4. **Optimization utilities** that involve complex computations
+
+**Example Categories** (adapt to your problem):
+
+For TSP:
+- **Tour Optimization Utilities**: 2-opt search, edge exchange evaluation, tour improvement detection
+- **Lower Bound Computation**: MST-based bounds, held-karp relaxation, assignment problem bounds
+- **Insertion Analysis**: Best position finder with look-ahead, regret-based insertion, cheapest insertion with constraints
+
+For Scheduling (JSSP):
+- **Makespan Calculation**: Critical path analysis, resource conflict detection
+- **Bottleneck Analysis**: Machine utilization computation, bottleneck identification
+- **Schedule Optimization**: Shifting operations, slack time calculation
+
+## Design Principles
+
+Each category should contain tools that:
+- **Encapsulate complexity**: Handle algorithms that are non-trivial to implement
+- **Provide domain knowledge**: Embed expert insights about the problem
+- **Are reusable**: Used by multiple different heuristics
+- **Improve efficiency**: Pre-optimized implementations of expensive operations
+- **Enable better decisions**: Help heuristics make informed choices
+   - Efficient data structure operations
+   - Index/lookup utilities
+   - Subset operations
+
+6. **Problem-Specific Domain Tools**
+   - Special domain logic
+   - Constraint checking
+   - Domain calculations
+
+7. **Optimization Utilities**
+   - Lower bound calculations
+   - Upper bound estimates
+   - Regret calculations
+
+8. **Other Relevant Tools**
+   - Any other useful utilities specific to this problem
+
+## Design Principles
+
+- **Encapsulation**: Each tool should encapsulate complex domain logic
+- **Reusability**: Tools should be general enough to use in multiple heuristics
+- **Efficiency**: Tools should be computationally efficient
+- **Modularity**: Each tool should have a single, clear purpose
+
+## Output Format
+
+Provide **3-4 categories** that encapsulate complex domain logic. For each category:
+1. **Category name** (2-4 words, no special characters)
+2. **Why it's complex** (1 sentence explaining what domain knowledge it encapsulates)
+
+Format:
+
+***tool_categories:
+Category Name 1: What complex logic it encapsulates
+Category Name 2: What complex logic it encapsulates
+Category Name 3: What complex logic it encapsulates
+[Category Name 4: Optional if critical]
+***
+
+**Good Example for TSP**:
+***tool_categories:
+Tour Optimization Utilities: Implements 2-opt and 3-opt local search moves with delta evaluation for efficient tour improvement
+Lower Bound Estimation: Computes MST-based lower bounds and held-karp relaxation for solution quality assessment
+Insertion Analysis Tools: Advanced insertion cost calculation with look-ahead and regret-based position selection
+***
+
+**Bad Example** (too simple, not complex domain logic):
+***tool_categories:
+Get Unvisited Nodes: Returns list of unvisited nodes
+Check Solution Valid: Validates if solution is feasible
+Calculate Tour Cost: Sums up edge costs
+***
+
+**Key Requirements**:
+- ONLY 3-4 categories
+- Each must encapsulate **COMPLEX** domain logic
+- NOT simple getters/checkers (those are in state/validation)
+- Category names: 2-4 words, no special chars
+- Focus on **algorithms**, **optimizations**, **domain expertise**
+- Tools should make heuristic code SIMPLER, not just convenient

@@ -1,0 +1,43 @@
+Your previously generated action space code for the {problem} problem encountered an error during smoke testing.
+
+## Error Message
+{error_message}
+
+## Your Previous Code
+{old_code}
+
+## Your Task
+Please fix the error in the code while maintaining the original design intent and structure.
+
+### Common Issues to Check
+1. **Import errors**: Make sure all necessary imports are included
+2. **Type errors**: Verify parameter types match expected types
+3. **Logic errors**: Check if the action logic is correct
+4. **Syntax errors**: Look for Python syntax mistakes
+5. **Solution modification**: Ensure you create NEW solutions instead of modifying inputs
+
+### Requirements
+- Fix the specific error mentioned above
+- Preserve the original algorithmic logic as much as possible
+- Ensure all actions inherit from `BaseOperator` correctly
+- Ensure all actions have proper `__init__` and `run` methods
+- Do NOT modify the input solution in `run` method - always create a new one
+
+## Output Format
+Provide your corrected code in this format:
+
+***python_code:
+# Your COMPLETE corrected action space code here
+# Include all imports
+# Include all action classes (both constructive and improvement)
+
+from src.problems.base.components import BaseOperator
+# Other imports...
+
+# All your action classes
+***
+
+CRITICAL:
+- Only put code inside ***python_code:...*** markers
+- Include the COMPLETE code (all actions, all imports)
+- The code should be ready to execute without modifications

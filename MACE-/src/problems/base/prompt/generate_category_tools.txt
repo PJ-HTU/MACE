@@ -1,0 +1,210 @@
+You are an expert in combinatorial optimization and algorithm design.
+
+I am working on the {problem} problem:
+{task_description}
+
+I need you to generate **tool functions** that **encapsulate complex domain logic** for:
+
+**Category**: {category}
+
+## Philosophy: Tools Encapsulate Complexity
+
+According to MACE framework:
+> "The tool library encapsulates complex domain logic as callable modules, enabling LLMs to leverage domain knowledge through tool invocation rather than inferring it from scratch."
+
+**Purpose of Tools**:
+- Reduce complexity of heuristic code by handling hard-to-implement algorithms
+- Embed domain expertise that LLMs might not know
+- Provide optimized implementations of expensive operations
+- Enable heuristics to make better decisions without complex logic
+
+**NOT for Tools** (already available elsewhere):
+- Simple state queries → use problem_state dict
+- Basic validation → use validation_solution()
+- Trivial getters/setters → not needed
+- Direct action execution → use Action operators
+
+## Context
+
+These tools will be used by heuristic algorithms that work with:
+
+### State Space (excerpt):
+```python
+{state_info}
+```
+
+### Action Space (excerpt):
+```python
+{action_info}
+```
+
+## Your Task
+
+Generate **2-3 tools** for "{category}" that encapsulate **complex domain logic**.
+
+Each tool should:
+1. **Implement non-trivial algorithms** (not just simple queries)
+2. **Encapsulate domain expertise** (expert knowledge about the problem)
+3. **Reduce heuristic complexity** (make heuristic code simpler)
+4. **Be computationally optimized** (efficient implementation)
+5. **Be reusable** (useful for multiple heuristics)
+
+## Tool Function Requirements
+
+### Good Tools (Complex Domain Logic):
+
+```python
+def evaluate_2opt_move(
+    instance_data: dict,
+    solution: Solution,
+    i: int,
+    j: int
+) -> float:
+    """
+    Evaluate the cost delta of applying 2-opt between positions i and j.
+    
+    This implements the 2-opt delta calculation algorithm, which is
+    non-trivial for LLMs to implement correctly. The tool encapsulates
+    the edge reversal logic and cost computation.
+    
+    Args:
+        instance_data: Contains 'distance_matrix'
+        solution: Current tour solution
+        i: First position for 2-opt
+        j: Second position for 2-opt
+    
+    Returns:
+        Cost delta (negative = improvement)
+        
+    Algorithm:
+        Computes cost change without actually modifying the tour:
+        old_cost = d(tour[i], tour[i+1]) + d(tour[j], tour[j+1])
+        new_cost = d(tour[i], tour[j]) + d(tour[i+1], tour[j+1])
+        delta = new_cost - old_cost
+    """
+    dist = instance_data['distance_matrix']
+    tour = solution.tour
+    
+    # Handle edge cases
+    if i >= j or j >= len(tour) - 1:
+        return float('inf')
+    
+    # Complex 2-opt delta calculation
+    old_cost = dist[tour[i]][tour[i+1]] + dist[tour[j]][tour[j+1]]
+    new_cost = dist[tour[i]][tour[j]] + dist[tour[i+1]][tour[j+1]]
+    
+    return new_cost - old_cost
+
+
+def compute_mst_lower_bound(
+    instance_data: dict,
+    solution: Solution
+) -> float:
+    """
+    Compute MST-based lower bound for remaining nodes.
+    
+    This encapsulates the Minimum Spanning Tree algorithm, which is
+    complex and requires graph algorithm knowledge. Used for estimating
+    the cost to complete a partial solution.
+    
+    Args:
+        instance_data: Contains 'distance_matrix' and 'node_num'
+        solution: Current partial solution
+    
+    Returns:
+        Lower bound estimate for completing the solution
+        
+    Algorithm:
+        1. Find unvisited nodes
+        2. Build MST on unvisited nodes using Prim's algorithm
+        3. Add minimum connection costs to existing tour
+        4. Return total lower bound
+    """
+    # Complex MST implementation
+    # ... (Prim's algorithm logic)
+    pass
+```
+
+### Bad Tools (Too Simple, Don't Use):
+
+```python
+# ❌ Too simple - just a getter
+def get_unvisited_nodes(instance_data: dict, solution: Solution) -> List[int]:
+    """Get list of unvisited nodes."""
+    visited = set(solution.tour)
+    return [i for i in range(instance_data['node_num']) if i not in visited]
+
+# ❌ Too simple - just a sum
+def calculate_total_cost(instance_data: dict, solution: Solution) -> float:
+    """Calculate total tour cost."""
+    cost = sum(instance_data['distance_matrix'][solution.tour[i]][solution.tour[i+1]] 
+               for i in range(len(solution.tour)-1))
+    return cost
+
+# ❌ Already in validation
+def is_valid_solution(instance_data: dict, solution: Solution) -> bool:
+    """Check if solution is valid."""
+    # This should use validation_solution() instead
+    pass
+```
+
+## What Makes a Good Tool
+
+**Complex Algorithms** ✅:
+- 2-opt/3-opt delta evaluation
+- MST computation
+- Assignment problem solving
+- Critical path analysis
+- Regret calculation with look-ahead
+
+**Domain Expertise** ✅:
+- Held-Karp lower bounds
+- Bottleneck detection
+- Resource conflict resolution
+- Problem-specific heuristics (savings algorithm, etc.)
+
+**Optimization Utilities** ✅:
+- Efficient neighborhood enumeration
+- Delta evaluation (incremental cost updates)
+- Cached computations
+
+**Simple Operations** ❌:
+- Getting unvisited elements
+- Checking validity
+- Computing simple sums
+- Basic list operations
+
+## Output Format
+
+Provide your tool functions wrapped in ***python_code:...*** markers:
+
+***python_code:
+# Tool functions for category: {category}
+# Each tool encapsulates COMPLEX domain logic
+
+def complex_algorithm_tool(...):
+    """
+    Comprehensive docstring explaining:
+    - What complex algorithm/logic is implemented
+    - Why this is hard for LLMs to code
+    - How it helps heuristics
+    """
+    # Implementation of non-trivial algorithm
+    # NOT simple getters/setters
+    pass
+
+def domain_expertise_tool(...):
+    """
+    Encapsulates domain knowledge.
+    """
+    # Implementation using expert knowledge
+    pass
+***
+
+CRITICAL REQUIREMENTS:
+- Generate 2-3 tools that encapsulate COMPLEX logic
+- Each tool must implement non-trivial algorithms or domain expertise
+- NO simple getters/checkers/validators
+- Include complete implementation (not just pass)
+- Focus on: algorithms, optimizations, expert knowledge
+- Tools should REDUCE heuristic code complexity

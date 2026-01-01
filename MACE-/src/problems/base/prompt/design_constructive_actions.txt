@@ -1,0 +1,87 @@
+You are an expert in combinatorial optimization and algorithm design.
+
+I am working on the {problem} problem:
+{task_description}
+
+Your task is to design **Constructive Actions** for this problem. Constructive actions are operators that incrementally build a solution from scratch by adding elements step by step.
+
+## Requirements
+
+### 1. Action Categories
+Design at least 2-3 different constructive action operators that cover different construction strategies:
+- **Append-based actions**: Add elements to the end of the current partial solution
+- **Insert-based actions**: Insert elements at specific positions in the partial solution
+- **Other construction strategies**: Any other meaningful ways to incrementally construct a solution
+
+### 2. Code Structure
+Each action should be implemented as a Python class that:
+- Inherits from `BaseOperator`
+- Has a clear `__init__` method with necessary parameters
+- Implements a `run(self, solution: Solution) -> Solution` method that applies the action
+- Does NOT modify the input solution (create a new solution instead)
+
+### 3. Code Format
+```python
+class YourActionName(BaseOperator):
+    """Clear documentation of what this action does."""
+    
+    def __init__(self, param1: type, param2: type, ...):
+        """Initialize the action with necessary parameters."""
+        self.param1 = param1
+        self.param2 = param2
+        # Store other parameters
+    
+    def run(self, solution: Solution) -> Solution:
+        """
+        Apply this action to the solution.
+        
+        Args:
+            solution: The current solution to be modified
+            
+        Returns:
+            A NEW solution with the action applied (do not modify input)
+        """
+        # Your implementation here
+        # CRITICAL: Create a new solution, don't modify the input
+        new_solution_data = # ... construct new solution data
+        return Solution(new_solution_data)
+```
+
+### 4. Design Principles
+- **Completeness**: Cover different construction strategies
+- **Efficiency**: Actions should be computationally lightweight
+- **Generality**: Actions should work for any valid problem instance
+- **Safety**: Never modify the input solution directly
+
+### 5. Examples to Inspire (for TSP)
+For TSP, constructive actions might include:
+- `AppendOperator(node)`: Append a node to the end of the tour
+- `InsertOperator(node, position)`: Insert a node at a specific position
+- `BestInsertOperator(node)`: Insert a node at the position that minimizes cost increase
+
+## Output Format
+Please provide your complete Python code wrapped in ***python_code:...*** markers:
+
+***python_code:
+# Your complete constructive actions code here
+# Include ALL necessary imports at the top
+# Include ALL action classes
+
+from src.problems.base.components import BaseOperator
+# Add other necessary imports
+
+class Action1(BaseOperator):
+    # Implementation
+    pass
+
+class Action2(BaseOperator):
+    # Implementation  
+    pass
+
+# Add more actions as needed
+***
+
+IMPORTANT: 
+- Only provide code inside the ***python_code:...*** markers
+- Do NOT include explanations inside the markers
+- You can add analysis and explanation OUTSIDE the markers

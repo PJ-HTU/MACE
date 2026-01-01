@@ -1,0 +1,101 @@
+You are an expert in combinatorial optimization and local search algorithms.
+
+I am working on the {problem} problem:
+{task_description}
+
+Your task is to design **Improvement Actions** for this problem. Improvement actions are operators that refine an existing solution through local modifications to improve solution quality.
+
+## Requirements
+
+### 1. Action Categories
+Design at least 3-5 different improvement action operators covering various local search strategies:
+- **Swap operations**: Exchange elements in the solution
+- **Reverse/Flip operations**: Reverse a subsequence of elements
+- **Relocate operations**: Move elements to different positions
+- **2-opt, 3-opt style operations**: Classical local search moves
+- **Problem-specific operations**: Any other meaningful improvement moves
+
+### 2. Code Structure
+Each action should be implemented as a Python class that:
+- Inherits from `BaseOperator`
+- Has a clear `__init__` method with necessary parameters
+- Implements a `run(self, solution: Solution) -> Solution` method
+- Does NOT modify the input solution (create a new solution instead)
+- Should typically work on COMPLETE solutions (not partial ones)
+
+### 3. Code Format
+```python
+class YourImprovementAction(BaseOperator):
+    """Clear documentation of what this improvement does."""
+    
+    def __init__(self, param1: type, param2: type, ...):
+        """
+        Initialize the improvement action.
+        
+        Args:
+            param1: Description of parameter 1
+            param2: Description of parameter 2
+        """
+        self.param1 = param1
+        self.param2 = param2
+    
+    def run(self, solution: Solution) -> Solution:
+        """
+        Apply this improvement to the solution.
+        
+        Args:
+            solution: The current complete solution
+            
+        Returns:
+            A NEW improved solution (do not modify input)
+        """
+        # Your implementation here
+        # Example: perform a local modification
+        new_solution_data = # ... modify solution
+        return Solution(new_solution_data)
+```
+
+### 4. Design Principles
+- **Diversity**: Cover different types of local modifications
+- **Effectiveness**: Each action should have potential to improve solution quality
+- **Efficiency**: Actions should run quickly (avoid expensive operations)
+- **Validity**: Actions must maintain solution feasibility
+- **Safety**: Never modify the input solution directly
+
+### 5. Examples to Inspire (for TSP)
+For TSP, improvement actions might include:
+- `SwapOperator(i, j)`: Swap cities at positions i and j
+- `TwoOptOperator(i, j)`: Perform 2-opt move between positions i and j
+- `ReverseOperator(start, end)`: Reverse tour segment from start to end
+- `RelocateOperator(from_pos, to_pos)`: Move a city from one position to another
+- `ThreeOptOperator(i, j, k)`: Perform 3-opt move with three breakpoints
+
+## Output Format
+Please provide your complete Python code wrapped in ***python_code:...*** markers:
+
+***python_code:
+# Your complete improvement actions code here
+# Include ALL necessary imports at the top
+# Include ALL action classes
+
+from src.problems.base.components import BaseOperator
+# Add other necessary imports
+
+class ImprovementAction1(BaseOperator):
+    """Description of improvement action 1."""
+    # Implementation
+    pass
+
+class ImprovementAction2(BaseOperator):
+    """Description of improvement action 2."""
+    # Implementation
+    pass
+
+# Add more improvement actions (aim for 3-5)
+***
+
+IMPORTANT:
+- Only provide code inside the ***python_code:...*** markers
+- Do NOT include explanations inside the markers  
+- You can add analysis and explanation OUTSIDE the markers
+- Focus on CLASSICAL and PROVEN local search operators for CO problems
