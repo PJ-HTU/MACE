@@ -1,4 +1,4 @@
-I need your help to design different 5 basic heuristics for the {problem} problem.
+I need your help to design different 10 basic heuristics for the {problem} problem.
 
 ## Heuristic Requirements:
 1. **Constructive Nature**: Each heuristic must be constructive (or constructive followed by improvement), and build solutions step-by-step from scratch.
