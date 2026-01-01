@@ -1,0 +1,663 @@
+user
+I am working on Hyper-heuristics for Combinatorial Operation (CO) problem.
+
+Currently, I am working on psp problem:
+Port Scheduling Problem (PSP) - Mathematical Model Description
+
+Problem Overview
+
+The Port Scheduling Problem (PSP) involves optimal allocation of vessels to berths with coordinated tugboat services. The system manages multiple berths with different capacity levels, multiple tugboats with varying horsepower capabilities, and multiple vessels with specific requirements and time constraints.
+
+Key Problem Characteristics
+
+Each vessel must receive three sequential services if allocated:
+1. Inbound tugboat service - to guide vessel to berth
+2. Berthing service - vessel occupies berth for cargo operations
+3. Outbound tugboat service - to guide vessel away from berth
+
+The services must be properly sequenced and temporally connected within allowable time tolerances. Vessels that cannot receive complete service are penalized heavily.
+
+Mathematical Model Formulation
+
+Decision Variables
+- x_ijt ∈ {0,1}: vessel i starts berthing at berth j at time t (only if berth capacity Cⱼ ≥ vessel size Sᵢ)
+- y^in_ikt ∈ {0,1}: tugboat k starts inbound service for vessel i at time t
+- y^out_ikt ∈ {0,1}: tugboat k starts outbound service for vessel i at time t
+- z^in_it ∈ {0,1}: auxiliary variable indicating vessel i starts inbound tugboat service at time t
+- z^out_it ∈ {0,1}: auxiliary variable indicating vessel i starts outbound tugboat service at time t
+- u^early_i ≥ 0: early deviation from ETA for vessel i
+- u^late_i ≥ 0: late deviation from ETA for vessel i
+
+Objective Function
+Minimize: λ₁Z₁ + λ₂Z₂ + λ₃Z₃ + λ₄Z₄
+
+Where:
+- Z₁ = Σᵢ M·αᵢ·(1 - Σⱼ Σₜ x_ijt) [Unserved vessel penalty]
+- Z₂ = Σᵢ αᵢ·βᵢ·[Σₜ (t + τ^out_i)·z^out_it - Σₜ t·z^in_it] [Total port time cost]
+- Z₃ = Σᵢ αᵢ·γᵢ·(u^early_i + u^late_i) [ETA deviation cost]
+- Z₄ = Σₖ Σᵢ Σₜ cₖ·(τ^in_i·y^in_ikt + τ^out_i·y^out_ikt) [Tugboat utilization cost]
+
+Complete Constraint Set
+
+Constraint (1): Vessel Assignment Constraints
+Σⱼ Σₜ x_ijt ≤ 1, ∀i ∈ I
+Each vessel can be assigned at most once.
+
+Constraint (2): Vessel-Berth Compatibility Constraints
+x_ijt = 0, ∀i ∈ I, j ∈ J, t ∈ T : Cⱼ < Sᵢ
+Vessels can only be assigned to berths with sufficient capacity.
+
+Constraint (3): Inbound Tugboat Service Coupling
+Σₜ z^in_it = Σⱼ Σₜ x_ijt, ∀i ∈ I
+If a vessel is assigned to any berth, it must receive inbound tugboat service exactly once.
+
+Constraint (4): Outbound Tugboat Service Coupling
+Σₜ z^out_it = Σⱼ Σₜ x_ijt, ∀i ∈ I
+If a vessel is assigned to any berth, it must receive outbound tugboat service exactly once.
+
+Constraint (5): Tugboat Horsepower Constraints for Inbound
+Σₖ Pₖ·y^in_ikt ≥ P^req_i·z^in_it, ∀i ∈ I, t ∈ T
+Assigned tugboats must provide sufficient total horsepower for inbound service.
+
+Constraint (6): Tugboat Horsepower Constraints for Outbound
+Σₖ Pₖ·y^out_ikt ≥ P^req_i·z^out_it, ∀i ∈ I, t ∈ T
+Assigned tugboats must provide sufficient total horsepower for outbound service.
+
+Constraint (7): Tugboat Quantity Limits for Inbound
+Σₖ y^in_ikt ≤ H_max·z^in_it, ∀i ∈ I, t ∈ T
+Maximum number of tugboats per inbound service is limited to H_max.
+
+Constraint (8): Tugboat Quantity Limits for Outbound
+Σₖ y^out_ikt ≤ H_max·z^out_it, ∀i ∈ I, t ∈ T
+Maximum number of tugboats per outbound service is limited to H_max.
+
+Constraint (9): Auxiliary Variable Definition for Inbound
+z^in_it ≤ Σₖ y^in_ikt, ∀i ∈ I, t ∈ T
+Auxiliary variables for inbound service are properly linked to tugboat assignment variables.
+Additional requirement: All tugboats serving the same vessel for inbound service must start at the same time.
+
+Constraint (10): Auxiliary Variable Definition for Outbound
+z^out_it ≤ Σₖ y^out_ikt, ∀i ∈ I, t ∈ T
+Auxiliary variables for outbound service are properly linked to tugboat assignment variables.
+Additional requirement: All tugboats serving the same vessel for outbound service must start at the same time.
+
+Constraint (11): Berth Capacity Constraints
+Σᵢ Σₜ'=max(1,t-Dᵢ+1)^t x_ijt' ≤ 1, ∀j ∈ J, t ∈ T
+Each berth can accommodate at most one vessel at any time, considering vessel duration Dᵢ.
+
+Constraint (12): Tugboat Capacity Constraints (with Preparation Time)
+Σᵢ [Σₜ'=max(1,t-τ^in_i-ρ^in+1)^t y^in_ikt' + Σₜ'=max(1,t-τ^out_i-ρ^out+1)^t y^out_ikt'] ≤ 1, ∀k ∈ K, t ∈ T
+Each tugboat can provide only one service at a time, including preparation time between services.
+
+Constraint (13): Inbound Service Time Window Constraints
+y^in_ikt = 0, ∀i ∈ I, k ∈ K, t < ETAᵢ - Δ^early_i or t > ETAᵢ + Δ^late_i
+Tugboat inbound services can only start within the vessel's ETA allowed time window.
+
+Constraint (14): Inbound-Berthing Timing Sequence Constraints
+0 ≤ Σⱼ Σₜ t·x_ijt - Σₜ (t + τ^in_i)·z^in_it ≤ ε_time·Σⱼ Σₜ x_ijt, ∀i ∈ I
+Berthing must start after inbound service completion, within tolerance ε_time.
+
+Constraint (15): Berthing-Outbound Timing Sequence Constraints
+0 ≤ Σₜ t·z^out_it - Σⱼ Σₜ (t + Dᵢ)·x_ijt ≤ ε_time·Σⱼ Σₜ x_ijt, ∀i ∈ I
+Outbound service must start after berthing completion, within tolerance ε_time.
+
+Constraint (16): ETA Deviation Linearization Constraints
+Σₜ t·z^in_it = ETAᵢ + u^late_i - u^early_i, ∀i ∈ I
+Linear representation of ETA deviations for cost calculation.
+
+Constraint (17): Variable Domain Constraints
+u^early_i, u^late_i ≥ 0, ∀i ∈ I
+x_ijt, y^in_ikt, y^out_ikt, z^in_it, z^out_it ∈ {0,1}, ∀i ∈ I, j ∈ J, k ∈ K, t ∈ T
+Variable domain constraints for all decision variables.
+
+Input Parameters
+
+Vessel Parameters
+- Sᵢ: Size level of vessel i
+- ETAᵢ: Expected arrival time of vessel i
+- Dᵢ: Berthing duration required by vessel i
+- τ^in_i, τ^out_i: Inbound and outbound tugboat service durations for vessel i
+- P^req_i: Minimum tugboat horsepower required by vessel i
+- Δ^early_i, Δ^late_i: Maximum allowed early/late deviations from ETA for vessel i
+- αᵢ, βᵢ, γᵢ: Priority weight, unit waiting cost, and JIT deviation unit cost for vessel i
+
+Berth Parameters
+- Cⱼ: Capacity level of berth j
+
+Tugboat Parameters
+- Pₖ: Horsepower of tugboat k
+- cₖ: Unit time usage cost of tugboat k
+- ρ^in, ρ^out: Preparation times for tugboats after completing inbound/outbound services
+
+System Parameters
+- H_max: Maximum number of tugboats allowed per service
+- ε_time: Maximum allowed time deviation in sequencing constraints
+- M: Large penalty parameter for unserved vessels
+- λ₁, λ₂, λ₃, λ₄: Weighting coefficients in the objective function
+
+Problem Constraints Summary
+
+The model ensures that:
+1. Each vessel receives complete service (inbound → berthing → outbound) or no service at all
+2. Services follow proper temporal sequence with bounded time gaps
+3. Resource capacity constraints are respected for both berths and tugboats
+4. Tugboat horsepower and quantity requirements are satisfied
+5. Tugboat inbound services can only start within the vessel's ETA allowed time window.
+6. Berth-vessel size compatibility is maintained
+7. Tugboat availability considering preparation times is enforced
+8. All tugboats serving the same vessel must start their service at the same time
+
+
+Please consider is psp a combinatorial operation problem and can be solved by heuristics?
+If you think this problem is not a combinatorial operation problem or the solution, operator, data are incorrect, response ***is_cop:no*** to me, or response ***is_cop:yes***.
+
+The response format is very important. For better communication, please respond to me in this format:
+***is_cop:yes/no***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***is_cop:yes***
+
+The Port Scheduling Problem (PSP) as described is indeed a combinatorial optimization (CO) problem. It involves discrete decision-making for assigning vessels to berths and tugboats at specific times, subject to compatibility, capacity, sequencing, and timing constraints, with the goal of minimizing a multi-objective function that includes penalties and costs. This fits the classic characteristics of CO problems, such as scheduling, assignment, and resource allocation in discrete spaces, which are often NP-hard and scale poorly with exact solvers like MILP for large instances.
+
+Heuristics (e.g., genetic algorithms, simulated annealing, tabu search, or hyper-heuristics) are highly suitable for solving it, especially to generate good feasible solutions quickly when exact methods are computationally expensive. The binary variables, time-discretized horizons, and interdependent services make it amenable to heuristic operators like local search for reassigning vessels/tugs, mutation for timing adjustments, or selection mechanisms in population-based methods. The provided mathematical model is a solid MILP formulation, with no apparent errors in variables, constraints, or objectives—it's comprehensive and aligns with standard scheduling models in port operations research. If you're developing hyper-heuristics, low-level heuristics could target subproblems like tug assignment or berth sequencing, while high-level ones select/adapt them dynamically.
+------------------------------------------------------------------------------------
+
+user
+We aim to collaboratively create the functions to generate some problem states(statistics data), which captures the high-level features of problem instance for the psp. 
+
+These functions will be underpinned by rigorous statistical analysis and domain-specific knowledge, ensuring they are both accurate and relevant.
+
+
+In determining the optimal problem states to represent instance, we must adhere to the following criteria:
+1. The data representation should be succinct to minimize computational load while retaining sufficient granularity to recognize the feature of the problem and solution.
+2. It must incorporate unique attributes that aid in the clear distinction between different instances.
+3. The most important, these data only focus on instance and has nothing to do with solution.
+
+Now, please tell me which statistical data are best serve as instance problem state.
+
+The response format is very important. For better communication, please respond to me in this format:
+***instance_problem_state:
+problem_state_name;how_to_calculate;reason
+problem_state_name;how_to_calculate;reason
+....
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***instance_problem_state:
+num_vessels;|I|;Captures the scale of demand, a fundamental distinguisher for instance complexity as more vessels increase combinatorial possibilities without solution dependency.
+num_berths;|J|;Indicates resource availability for berthing, distinguishing instances by berth scarcity or abundance, which affects feasibility and tightness.
+num_tugboats;|K|;Reflects service capacity for tug operations, key for differentiating tug-constrained vs. berth-constrained instances.
+avg_vessel_size;mean(S_i over i in I);Summarizes vessel scale relative to berths, succinct proxy for compatibility challenges and size heterogeneity.
+var_vessel_size;variance(S_i over i in I);Measures size diversity, helping distinguish uniform vs. heterogeneous fleets that impact assignment flexibility.
+total_required_hp;sum(P^req_i over i in I);Quantifies aggregate horsepower demand, distinguishing high vs. low tug power needs without per-vessel detail.
+total_available_hp;sum(P_k over k in K);Represents overall tug fleet strength, a succinct indicator of potential bottlenecks in service provision.
+eta_span;max(ETA_i) - min(ETA_i) over i in I;Defines the temporal spread of arrivals, crucial for sequencing tightness and time window overlaps.
+avg_berthing_duration;mean(D_i over i in I);Averages occupation times, distinguishing short-turnaround vs. long-stay instances affecting berth turnover.
+vessel_arrival_density;|I| / eta_span;Gauges arrival clustering, a compact measure of temporal pressure and potential conflicts in scheduling windows.
+avg_time_window_flex;mean(Δ^early_i + Δ^late_i over i in I);Summarizes allowable ETA deviations, indicating rigidity of arrival constraints across instances.
+berth_capacity_ratio;mean(C_j over j in J) / mean(S_i over i in I);Roughly captures average berth-vessel fit, distinguishing compatible vs. mismatched resource setups.
+***
+
+These features are derived from the core input parameters of the PSP model, focusing on counts, central tendencies, spreads, and ratios that encapsulate instance characteristics like scale, heterogeneity, resource adequacy, and temporal dynamics. They avoid any solution-related metrics (e.g., no utilization from assignments) and are computationally lightweight, computable in O(n) time where n is instance size. For hyper-heuristics, such states can serve as inputs to high-level selectors, enabling adaptation to instance "landscapes" (e.g., dense arrivals might favor greedy dispatching over global search). If your dataset includes a defined time horizon T, you could add sum(D_i) / (|J| * T) for potential berth load, but I omitted it assuming T might vary or be derived from ETAs. Validation via statistical tests (e.g., PCA on instances) could refine this set further.
+------------------------------------------------------------------------------------
+
+user
+Try to implement the get_instance_problem_state function in python:
+def get_instance_problem_state(instance_data: dict) -> dict:
+
+The input is instance_data
+- vessel_num (int): The total number of vessels requesting berthing service.
+    - berth_num (int): The total number of berths available at the port.
+    - tugboat_num (int): The total number of tugboats available for service.
+    - time_periods (int): The total number of time periods in the scheduling horizon.
+    - vessel_sizes (numpy.ndarray): 1D array of size levels for each vessel (Si).
+    - berth_capacities (numpy.ndarray): 1D array of capacity levels for each berth (Cj).
+    - vessel_etas (numpy.ndarray): 1D array of expected arrival times for each vessel (ETAi).
+    - vessel_durations (numpy.ndarray): 1D array of berthing durations required by each vessel (Di).
+    - vessel_inbound_service_times (numpy.ndarray): 1D array of inbound tugboat service durations for each vessel.
+    - vessel_outbound_service_times (numpy.ndarray): 1D array of outbound tugboat service durations for each vessel.
+    - vessel_priority_weights (numpy.ndarray): 1D array of priority weights for each vessel.
+    - vessel_waiting_costs (numpy.ndarray): 1D array of unit waiting costs for each vessel.
+    - vessel_jit_costs (numpy.ndarray): 1D array of JIT deviation unit costs for each vessel.
+    - vessel_horsepower_requirements (numpy.ndarray): 1D array of minimum tugboat horsepower required by each vessel.
+    - vessel_early_limits (numpy.ndarray): 1D array of maximum early arrival allowances for each vessel.
+    - vessel_late_limits (numpy.ndarray): 1D array of maximum late arrival allowances for each vessel.
+    - tugboat_horsepower (numpy.ndarray): 1D array of horsepower for each tugboat.
+    - tugboat_costs (numpy.ndarray): 1D array of unit time usage costs for each tugboat.
+    - inbound_preparation_time (int): Preparation time for tugboats after completing inbound service (rho_in).
+    - outbound_preparation_time (int): Preparation time for tugboats after completing outbound service (rho_out).
+    - max_tugboats_per_service (int): Maximum number of tugboats allowed for a single service (Hmax).
+    - time_constraint_tolerance (float): Maximum allowed time deviation in timing constraints (epsilon_time).
+    - penalty_parameter (float): Large penalty parameter for unserved vessels.
+    - objective_weights (numpy.ndarray): 1D array of four weighting coefficients [lambda_1, lambda_2, lambda_3, lambda_4] for objective function components.
+
+The output is algo a dict, which contains the following problem states as keys: num_vessels,num_berths,num_tugboats,avg_vessel_size,var_vessel_size,total_required_hp,total_available_hp,eta_span,avg_berthing_duration,vessel_arrival_density,avg_time_window_flex,berth_capacity_ratio.
+
+Please note:
+1. Never modify the instance_data.
+2. The name of function must be get_instance_problem_state.
+3. No any omissions or placeholders, I'm just going to use the code.
+4. Comments in the code are very important.
+
+
+The response format is very important. For better communication, please respond to me in this format:
+***python_code:
+import library (if necessary)
+def get_instance_problem_state(instance_data: dict) -> dict:
+    """Extract instance problem state from instance data.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+
+    Returns:
+        dict: The dictionary contains the instance problem state with:
+            - problem_state_name (type): description
+            - problem_state_name (type): description
+            ...
+    """
+    ...
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***python_code:
+import numpy as np
+
+def get_instance_problem_state(instance_data: dict) -> dict:
+    """Extract instance problem state from instance data.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+
+    Returns:
+        dict: The dictionary contains the instance problem state with:
+            - num_vessels (int): Number of vessels.
+            - num_berths (int): Number of berths.
+            - num_tugboats (int): Number of tugboats.
+            - avg_vessel_size (float): Average vessel size.
+            - var_vessel_size (float): Variance of vessel sizes.
+            - total_required_hp (float): Total required horsepower for all vessels.
+            - total_available_hp (float): Total available horsepower from all tugboats.
+            - eta_span (float): Span between maximum and minimum ETA.
+            - avg_berthing_duration (float): Average berthing duration.
+            - vessel_arrival_density (float): Density of vessel arrivals (num_vessels / eta_span).
+            - avg_time_window_flex (float): Average flexibility in time windows (mean of early + late limits).
+            - berth_capacity_ratio (float): Ratio of average berth capacity to average vessel size.
+    """
+    # Extract basic counts directly from the instance data
+    num_vessels = instance_data['vessel_num']
+    num_berths = instance_data['berth_num']
+    num_tugboats = instance_data['tugboat_num']
+    
+    # Extract relevant arrays for computations
+    vessel_sizes = instance_data['vessel_sizes']
+    berth_capacities = instance_data['berth_capacities']
+    vessel_etas = instance_data['vessel_etas']
+    vessel_durations = instance_data['vessel_durations']
+    vessel_horsepower_requirements = instance_data['vessel_horsepower_requirements']
+    tugboat_horsepower = instance_data['tugboat_horsepower']
+    vessel_early_limits = instance_data['vessel_early_limits']
+    vessel_late_limits = instance_data['vessel_late_limits']
+    
+    # Compute average vessel size using numpy mean
+    avg_vessel_size = np.mean(vessel_sizes)
+    
+    # Compute variance of vessel sizes using numpy var (default is population variance)
+    var_vessel_size = np.var(vessel_sizes)
+    
+    # Compute total required horsepower by summing vessel requirements
+    total_required_hp = np.sum(vessel_horsepower_requirements)
+    
+    # Compute total available horsepower by summing tugboat horsepowers
+    total_available_hp = np.sum(tugboat_horsepower)
+    
+    # Compute ETA span as max ETA minus min ETA
+    eta_span = np.max(vessel_etas) - np.min(vessel_etas)
+    
+    # Compute average berthing duration using numpy mean
+    avg_berthing_duration = np.mean(vessel_durations)
+    
+    # Compute vessel arrival density: number of vessels divided by ETA span
+    # Note: If eta_span is zero (all vessels arrive at same time), this would be infinite; assume eta_span > 0 in valid instances
+    vessel_arrival_density = num_vessels / eta_span if eta_span > 0 else 0.0  # Fallback to 0 if span is zero
+    
+    # Compute average time window flexibility: mean of (early + late limits) for all vessels
+    time_window_flex = vessel_early_limits + vessel_late_limits
+    avg_time_window_flex = np.mean(time_window_flex)
+    
+    # Compute berth capacity ratio: average berth capacity divided by average vessel size
+    avg_berth_capacity = np.mean(berth_capacities)
+    berth_capacity_ratio = avg_berth_capacity / avg_vessel_size if avg_vessel_size > 0 else 0.0  # Avoid division by zero
+    
+    # Construct the output dictionary with all computed states
+    problem_state = {
+        'num_vessels': num_vessels,
+        'num_berths': num_berths,
+        'num_tugboats': num_tugboats,
+        'avg_vessel_size': avg_vessel_size,
+        'var_vessel_size': var_vessel_size,
+        'total_required_hp': total_required_hp,
+        'total_available_hp': total_available_hp,
+        'eta_span': eta_span,
+        'avg_berthing_duration': avg_berthing_duration,
+        'vessel_arrival_density': vessel_arrival_density,
+        'avg_time_window_flex': avg_time_window_flex,
+        'berth_capacity_ratio': berth_capacity_ratio
+    }
+    
+    return problem_state
+***
+This implementation strictly adheres to the requirements: it uses the provided instance_data keys without modification, computes only the specified states using NumPy for efficient array operations, and includes comprehensive comments for clarity. Edge cases like zero eta_span or zero avg_vessel_size are handled with fallbacks to prevent errors (e.g., division by zero), assuming valid positive values in typical instances. The function is self-contained and ready for direct use in a hyper-heuristics pipeline. If time_periods or other params are needed later, they can be added without affecting this core extraction.
+------------------------------------------------------------------------------------
+
+user
+Now, we aim to collaboratively create the functions to generate some problem states(statistics data), which captures the high-level features of current (partial) solution for the psp.
+
+These functions will be underpinned by rigorous statistical analysis and domain-specific knowledge, ensuring they are both accurate and relevant.
+
+
+In determining the optimal problem states to represent instance, we must adhere to the following criteria:
+1. The data representation should be succinct to minimize computational load while retaining sufficient granularity to recognize the solution feature.
+2. It must incorporate unique attributes that aid in the clear distinction between different solution stage.
+3. We need to evaluate the current status from multiple dimensions, including the current progress of the solution, the quality of the solution, the status of the remaining data, etc.
+4. The most important, these data relates to both instance and current solution, and will update during the problem solving process.
+
+Now, please tell me which statistical data are best serve as solution problem state.
+
+The response format is very important. For better communication, please respond to me in this format:
+***solution_problem_state:
+problem_state_name;how_to_calculate;reason
+problem_state_name;how_to_calculate;reason
+....
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***solution_problem_state:
+assigned_vessels_fraction;(number of vessels with full service assignment (inbound, berthing, outbound)) / num_vessels;Tracks overall progress in completing vessel services, distinguishing early (low) vs. late (high) solution stages succinctly without full enumeration.
+partial_objective_value;current sum of Z1 + Z2 + Z3 + Z4 for assigned vessels only (penalize unassigned at M*alpha_i);Provides a quality snapshot of the partial solution, allowing distinction between improving vs. stagnating trajectories, computable incrementally.
+unassigned_vessels;num_vessels - number of fully assigned vessels;Quantifies remaining workload, essential for assessing solution completeness and guiding heuristic focus on backlog.
+berth_utilization;sum over assigned vessels of (D_i) / (num_berths * time_periods);Measures resource efficiency for berths, highlighting over/under-utilization stages to differentiate feasible vs. congested partial schedules.
+tug_utilization;sum over assigned services of (tau_in_i + tau_out_i) / (num_tugboats * time_periods);Captures tug resource strain, useful for identifying tug-bottleneck phases in the solving process.
+avg_eta_deviation_assigned;mean(u_early_i + u_late_i for assigned vessels);Evaluates timeliness quality for serviced vessels, distinguishing solutions with good vs. poor adherence to arrival windows.
+remaining_hp_demand;sum(P^req_i for unassigned vessels);Indicates future tug power needs, helping distinguish resource-plenty vs. -scarce remaining subproblems.
+schedule_progress;max(end time of assigned services) / time_periods;Gauges temporal advancement, key for sequencing heuristics to prioritize forward vs. backward filling in partial schedules.
+full_service_completion_rate;(number of vessels with all three services assigned without violations) / num_vessels;Refines progress by focusing on constraint satisfaction, distinguishing partial assignments from complete ones.
+potential_conflict_ratio;(number of overlapping resource assignments or violations in partial solution) / num_vessels;Assesses feasibility quality, succinct for detecting and resolving conflicts early in heuristic iterations.
+***
+
+These solution states build on the instance features by incorporating partial assignment data (e.g., tracking which vessels have x_ijt, y^in_ikt, y^out_ikt set), ensuring dynamic updates as heuristics evolve the solution (e.g., via local search or population updates). They cover progress (assigned fractions), quality (deviations, objectives), and remaining status (unassigned demands) across resource, temporal, and constraint dimensions, with O(n) computation for efficiency in hyper-heuristics. For implementation, assume access to current solution variables; in partial solutions, unassigned vessels contribute to penalties but not utilization. This set enables high-level heuristics to adapt, e.g., switch to intensification when progress > 0.7 or repair when conflicts rise. If solution data structure is specified later, refinements like weighted averages by priority (alpha_i) could enhance relevance.
+------------------------------------------------------------------------------------
+
+user
+Try to implement the get_solution_problem_state function in python:
+def get_solution_problem_state(instance_data: dict, solution: Solution) -> dict:
+
+The input is instance_data:
+- vessel_num (int): The total number of vessels requesting berthing service.
+    - berth_num (int): The total number of berths available at the port.
+    - tugboat_num (int): The total number of tugboats available for service.
+    - time_periods (int): The total number of time periods in the scheduling horizon.
+    - vessel_sizes (numpy.ndarray): 1D array of size levels for each vessel (Si).
+    - berth_capacities (numpy.ndarray): 1D array of capacity levels for each berth (Cj).
+    - vessel_etas (numpy.ndarray): 1D array of expected arrival times for each vessel (ETAi).
+    - vessel_durations (numpy.ndarray): 1D array of berthing durations required by each vessel (Di).
+    - vessel_inbound_service_times (numpy.ndarray): 1D array of inbound tugboat service durations for each vessel.
+    - vessel_outbound_service_times (numpy.ndarray): 1D array of outbound tugboat service durations for each vessel.
+    - vessel_priority_weights (numpy.ndarray): 1D array of priority weights for each vessel.
+    - vessel_waiting_costs (numpy.ndarray): 1D array of unit waiting costs for each vessel.
+    - vessel_jit_costs (numpy.ndarray): 1D array of JIT deviation unit costs for each vessel.
+    - vessel_horsepower_requirements (numpy.ndarray): 1D array of minimum tugboat horsepower required by each vessel.
+    - vessel_early_limits (numpy.ndarray): 1D array of maximum early arrival allowances for each vessel.
+    - vessel_late_limits (numpy.ndarray): 1D array of maximum late arrival allowances for each vessel.
+    - tugboat_horsepower (numpy.ndarray): 1D array of horsepower for each tugboat.
+    - tugboat_costs (numpy.ndarray): 1D array of unit time usage costs for each tugboat.
+    - inbound_preparation_time (int): Preparation time for tugboats after completing inbound service (rho_in).
+    - outbound_preparation_time (int): Preparation time for tugboats after completing outbound service (rho_out).
+    - max_tugboats_per_service (int): Maximum number of tugboats allowed for a single service (Hmax).
+    - time_constraint_tolerance (float): Maximum allowed time deviation in timing constraints (epsilon_time).
+    - penalty_parameter (float): Large penalty parameter for unserved vessels.
+    - objective_weights (numpy.ndarray): 1D array of four weighting coefficients [lambda_1, lambda_2, lambda_3, lambda_4] for objective function components.
+The format of solution is already defined as:
+class Solution:
+    """The solution of Port Scheduling Problem supporting multi-tugboat services.
+Attributes:
+    vessel_assignments (dict): Maps vessel_id to (berth_id, start_time) tuple. None if vessel is unassigned.
+    tugboat_inbound_assignments (dict): Maps vessel_id to list of tuple (tugboat_id, start_time) for inbound service.
+    tugboat_outbound_assignments (dict): Maps vessel_id to list of tuple (tugboat_id, start_time) for outbound service."""
+    def __init__(self, vessel_assignments: dict=None, tugboat_inbound_assignments: dict=None, tugboat_outbound_assignments: dict=None):
+        self.vessel_assignments = vessel_assignments or {}
+        self.tugboat_inbound_assignments = tugboat_inbound_assignments or {}
+        self.tugboat_outbound_assignments = tugboat_outbound_assignments or {}
+
+The output is algo a dict, which contains the following problem states as keys: assigned_vessels_fraction,partial_objective_value,unassigned_vessels,berth_utilization,tug_utilization,avg_eta_deviation_assigned,remaining_hp_demand,schedule_progress,full_service_completion_rate,potential_conflict_ratio.
+
+Please note:
+1. Never modify the instance_data and solution.
+2. The name of function must be get_solution_problem_state.
+3. No any omissions or placeholders, I'm just going to use the code.
+4. Comments in the code are very important.
+5. The solution is already defined, do not implement it again.
+
+The response format is very important. For better communication, please respond to me in this format:
+***python_code:
+import library (if necessary)
+def get_solution_problem_state(instance_data: dict, solution: Solution) -> dict:
+    """Extract instance problem state from instance data.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+        solution (Solution): The target solution instance.
+    Returns:
+        dict: The dictionary contains the instance problem state with:
+            - problem_state_name (type): description
+            - problem_state_name (type): description
+            ...
+    """
+    ...
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***python_code:
+import numpy as np
+
+def get_solution_problem_state(instance_data: dict, solution: Solution) -> dict:
+    """Extract solution problem state from instance data and current solution.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+        solution (Solution): The target solution instance.
+
+    Returns:
+        dict: The dictionary contains the solution problem state with:
+            - assigned_vessels_fraction (float): Fraction of vessels with full service assignments (inbound, berthing, outbound).
+            - partial_objective_value (float): Partial objective value computed as weighted sum of Z1 to Z4 for the current assignments.
+            - unassigned_vessels (int): Number of vessels without full service assignments.
+            - berth_utilization (float): Utilization of berths based on assigned berthing durations.
+            - tug_utilization (float): Utilization of tugboats based on assigned service durations.
+            - avg_eta_deviation_assigned (float): Average ETA deviation for vessels with full assignments.
+            - remaining_hp_demand (float): Total horsepower requirement for unassigned vessels.
+            - schedule_progress (float): Progress as the maximum end time of assigned services normalized by time periods.
+            - full_service_completion_rate (float): Fraction of vessels with full and valid service assignments (no local violations).
+            - potential_conflict_ratio (float): Ratio of full assignments that have local violations.
+    """
+    # Extract key scalars and arrays from instance_data
+    vessel_num = instance_data['vessel_num']
+    berth_num = instance_data['berth_num']
+    tugboat_num = instance_data['tugboat_num']
+    time_periods = instance_data['time_periods']
+    penalty = instance_data['penalty_parameter']
+    eps = instance_data['time_constraint_tolerance']
+    objective_weights = instance_data['objective_weights']  # [lambda1, lambda2, lambda3, lambda4]
+    alphas = instance_data['vessel_priority_weights']
+    betas = instance_data['vessel_waiting_costs']
+    gammas = instance_data['vessel_jit_costs']
+    etas = instance_data['vessel_etas']
+    ds = instance_data['vessel_durations']
+    tau_ins = instance_data['vessel_inbound_service_times']
+    tau_outs = instance_data['vessel_outbound_service_times']
+    p_reqs = instance_data['vessel_horsepower_requirements']
+    tug_hps = instance_data['tugboat_horsepower']
+    tug_costs = instance_data['tugboat_costs']
+    
+    # Initialize accumulators and counters
+    num_full_assigned = 0
+    num_valid_full = 0
+    z1 = 0.0  # Penalty for unassigned
+    z2 = 0.0  # Port time cost for assigned
+    z3 = 0.0  # ETA deviation cost for assigned
+    z4 = 0.0  # Tug utilization cost for assigned
+    total_berth_time = 0.0  # Sum of D_i for full assigned vessels
+    total_tug_time = 0.0  # Sum of (tau_in_i + tau_out_i) for full assigned vessels
+    total_eta_dev = 0.0  # Sum of (u_early + u_late) for full assigned vessels
+    max_end_time = 0.0  # Maximum outbound end time over full assigned vessels
+    remaining_hp = 0.0  # Sum of P_req for unassigned vessels
+    full_assigned_vessels = []  # List of vessel ids with full assignments for remaining HP calc
+    valid_vessels = set()  # For counting valid
+    
+    # Iterate over all vessels (assuming IDs are 0 to vessel_num-1)
+    for v in range(vessel_num):
+        # Get assignment data for this vessel
+        va = solution.vessel_assignments.get(v, None)
+        ti = solution.tugboat_inbound_assignments.get(v, [])
+        to = solution.tugboat_outbound_assignments.get(v, [])
+        
+        # Check if fully assigned (has berth and non-empty tug lists)
+        has_full = va is not None and len(ti) > 0 and len(to) > 0
+        if has_full:
+            num_full_assigned += 1
+            full_assigned_vessels.append(v)
+            
+            # Extract times (assume first for reference; check consistency below)
+            in_start = ti[0][1] if ti else 0
+            out_start = to[0][1] if to else 0
+            b_start = va[1] if va else 0
+            b_id = va[0] if va else -1
+            
+            # Compute contributions for objectives (regardless of validity)
+            port_time = (out_start + tau_outs[v]) - in_start
+            z2 += alphas[v] * betas[v] * port_time
+            
+            # ETA deviation: u_early + u_late = |in_start - eta|
+            eta_dev = abs(in_start - etas[v])
+            total_eta_dev += eta_dev
+            z3 += alphas[v] * gammas[v] * eta_dev
+            
+            # Tug costs: sum c_k * tau for inbound and outbound
+            sum_c_in = sum(tug_costs[tug_id] for tug_id, _ in ti)
+            sum_c_out = sum(tug_costs[tug_id] for tug_id, _ in to)
+            z4 += tau_ins[v] * sum_c_in + tau_outs[v] * sum_c_out
+            
+            # Accumulate for utilization
+            total_berth_time += ds[v]
+            total_tug_time += tau_ins[v] + tau_outs[v]
+            
+            # Update max end time
+            end_time = out_start + tau_outs[v]
+            if end_time > max_end_time:
+                max_end_time = end_time
+            
+            # Now check validity for local constraints
+            is_valid = True
+            
+            # Check all inbound tugs start at same time
+            in_starts = [st for _, st in ti]
+            if len(set(in_starts)) != 1:
+                is_valid = False
+            else:
+                in_start = in_starts[0]
+            
+            # Check all outbound tugs start at same time
+            out_starts = [st for _, st in to]
+            if len(set(out_starts)) != 1:
+                is_valid = False
+            else:
+                out_start = out_starts[0]
+            
+            # Check horsepower sufficiency for inbound and outbound
+            hp_in = sum(tug_hps[tug_id] for tug_id, _ in ti)
+            if hp_in < p_reqs[v]:
+                is_valid = False
+            hp_out = sum(tug_hps[tug_id] for tug_id, _ in to)
+            if hp_out < p_reqs[v]:
+                is_valid = False
+            
+            # Check timing sequence: inbound_end <= berth_start + eps and outbound_start <= berth_end + eps
+            in_end = in_start + tau_ins[v]
+            b_end = b_start + ds[v]
+            if not (in_end <= b_start + eps and out_start <= b_end + eps):
+                is_valid = False
+            
+            # Note: Global overlaps (e.g., berth/tug conflicts across vessels) are not checked here for succinctness;
+            # this focuses on local per-vessel validity.
+            
+            if is_valid:
+                num_valid_full += 1
+                valid_vessels.add(v)
+        else:
+            # For unassigned, add to Z1 and remaining HP
+            z1 += penalty * alphas[v]
+            remaining_hp += p_reqs[v]
+    
+    # Compute Z1 for any unassigned (already accumulated above)
+    # Note: z1 only includes unassigned; assigned contribute 0 to Z1
+    
+    # Compute partial objective value
+    partial_obj = (objective_weights[0] * z1 +
+                   objective_weights[1] * z2 +
+                   objective_weights[2] * z3 +
+                   objective_weights[3] * z4)
+    
+    # Compute state values
+    assigned_vessels_fraction = num_full_assigned / vessel_num if vessel_num > 0 else 0.0
+    unassigned_vessels = vessel_num - num_full_assigned
+    full_service_completion_rate = num_valid_full / vessel_num if vessel_num > 0 else 0.0
+    potential_conflict_ratio = (num_full_assigned - num_valid_full) / vessel_num if vessel_num > 0 else 0.0
+    
+    # Utilizations (using full assigned, regardless of validity)
+    denom_berth = berth_num * time_periods
+    berth_utilization = total_berth_time / denom_berth if denom_berth > 0 else 0.0
+    denom_tug = tugboat_num * time_periods
+    tug_utilization = total_tug_time / denom_tug if denom_tug > 0 else 0.0
+    
+    # Average ETA deviation for full assigned (using all full, as deviations are computable)
+    avg_eta_deviation_assigned = total_eta_dev / num_full_assigned if num_full_assigned > 0 else 0.0
+    
+    # Remaining HP for unassigned (already accumulated)
+    remaining_hp_demand = remaining_hp
+    
+    # Schedule progress
+    schedule_progress = max_end_time / time_periods if time_periods > 0 else 0.0
+    
+    # Construct output dictionary
+    problem_state = {
+        'assigned_vessels_fraction': assigned_vessels_fraction,
+        'partial_objective_value': partial_obj,
+        'unassigned_vessels': unassigned_vessels,
+        'berth_utilization': berth_utilization,
+        'tug_utilization': tug_utilization,
+        'avg_eta_deviation_assigned': avg_eta_deviation_assigned,
+        'remaining_hp_demand': remaining_hp_demand,
+        'schedule_progress': schedule_progress,
+        'full_service_completion_rate': full_service_completion_rate,
+        'potential_conflict_ratio': potential_conflict_ratio
+    }
+    
+    return problem_state
+***
+This implementation computes the solution states by iterating over all vessels once, extracting assignments from the Solution object, and performing local validity checks for sequence, timing consistency, and horsepower without modifying inputs. The partial objective is calculated per the mathematical model, treating full assignments (presence of all components) as "assigned" for costs and utilizations, while validity refines completion and conflict metrics. Global constraint violations (e.g., overlapping berths/tugs across vessels) are omitted for computational efficiency, focusing on per-vessel locals as a succinct proxy; if needed, a full feasibility evaluator could be added separately. Edge cases (e.g., no assignments, zero denominators) are handled with safe divisions and zeros. The code is efficient (O(vessel_num + sum tug assignments)), suitable for frequent calls in hyper-heuristics.
+------------------------------------------------------------------------------------
+

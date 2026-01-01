@@ -1,0 +1,64 @@
+problem_state (dict): A dictionary containing the problem state information, organized into five categories of keys:
+1. Input Data:
+    - vessel_num (int): The total number of vessels requesting berthing service.
+    - berth_num (int): The total number of berths available at the port.
+    - tugboat_num (int): The total number of tugboats available for service.
+    - time_periods (int): The total number of time periods in the scheduling horizon.
+    - vessel_sizes (numpy.ndarray): 1D array of size levels for each vessel (Si).
+    - berth_capacities (numpy.ndarray): 1D array of capacity levels for each berth (Cj).
+    - vessel_etas (numpy.ndarray): 1D array of expected arrival times for each vessel (ETAi).
+    - vessel_durations (numpy.ndarray): 1D array of berthing durations required by each vessel (Di).
+    - vessel_inbound_service_times (numpy.ndarray): 1D array of inbound tugboat service durations for each vessel.
+    - vessel_outbound_service_times (numpy.ndarray): 1D array of outbound tugboat service durations for each vessel.
+    - vessel_priority_weights (numpy.ndarray): 1D array of priority weights for each vessel.
+    - vessel_waiting_costs (numpy.ndarray): 1D array of unit waiting costs for each vessel.
+    - vessel_jit_costs (numpy.ndarray): 1D array of JIT deviation unit costs for each vessel.
+    - vessel_horsepower_requirements (numpy.ndarray): 1D array of minimum tugboat horsepower required by each vessel.
+    - vessel_early_limits (numpy.ndarray): 1D array of maximum early arrival allowances for each vessel.
+    - vessel_late_limits (numpy.ndarray): 1D array of maximum late arrival allowances for each vessel.
+    - tugboat_horsepower (numpy.ndarray): 1D array of horsepower for each tugboat.
+    - tugboat_costs (numpy.ndarray): 1D array of unit time usage costs for each tugboat.
+    - inbound_preparation_time (int): Preparation time for tugboats after completing inbound service (rho_in).
+    - outbound_preparation_time (int): Preparation time for tugboats after completing outbound service (rho_out).
+    - max_tugboats_per_service (int): Maximum number of tugboats allowed for a single service (Hmax).
+    - time_constraint_tolerance (float): Maximum allowed time deviation in timing constraints (epsilon_time).
+    - penalty_parameter (float): Large penalty parameter for unserved vessels.
+    - objective_weights (numpy.ndarray): 1D array of four weighting coefficients [lambda_1, lambda_2, lambda_3, lambda_4] for objective function components.
+2. Current Solution:
+    - current_solution (Solution): Current solution instance.
+    - total_scheduling_cost (float): The total scheduling cost of the current solution.
+3. Helper Functions (these Functions may help you to generation the following heuristic):
+    - get_problem_state (callable): def get_problem_state(solution: Solution) -> dict: The function to get the complete problem state for given solution without modifying it. Returns a dictionary containing state information.
+    - validation_solution (callable): def validation_solution(solution: Solution = None) -> bool: The function to check whether the solution is valid according to all mathematical model constraints. If solution is None, checks current solution. Returns True if valid, False otherwise.
+    - get_unassigned_vessels (callable): def get_unassigned_vessels(solution: Solution = None) -> list[int]: Get list of vessel IDs that have not been assigned to any berth. If solution is None, uses current solution. Returns list of integers representing unassigned vessel IDs (range 0 to vessel_num-1).
+    - get_vessel_time_window (callable): def get_vessel_time_window(vessel_id: int) -> tuple[int, int]: Get the feasible time window (earliest_start, latest_start) for vessel's inbound service considering ETA and early/late limits. Returns tuple of two integers representing the valid start time range.
+    - get_compatible_berths (callable): def get_compatible_berths(vessel_id: int) -> list[int]: Get list of berth IDs that can serve the vessel based on capacity level compatibility (berth_capacity >= vessel_size). Returns list of integers representing compatible berth IDs (range 0 to berth_num-1).
+    - is_berth_available (callable): def is_berth_available(berth_id: int, start_time: int, duration: int, solution: Solution = None) -> bool: Check if a berth is free during the specified time period [start_time, start_time + duration) without conflicts with existing assignments. If solution is None, uses current solution. Returns True if available, False if conflicted.
+    - is_tugboat_available (callable): def is_tugboat_available(tugboat_id: int, start_time: int, duration: int, prep_time: int = 0, solution: Solution = None) -> bool: Check if a tugboat is free during the specified service period [start_time, start_time + duration + prep_time) including preparation time. If solution is None, uses current solution. Returns True if available, False if conflicted.
+    - find_tugboat_combination (callable): def find_tugboat_combination(vessel_id: int, start_time: int, service_type: str, solution: Solution = None) -> tuple: Find a tugboat combination with sufficient horsepower for the service using greedy selection. The service_type parameter accepts 'inbound' or 'outbound'. Uses greedy strategy sorting tugboats by horsepower descending to minimize the number of tugboats needed. If greedy fails, performs exhaustive search to find any valid combination. Returns (selected_tugboats, total_cost) where selected_tugboats is a list of (tugboat_id, start_time) tuples, or (None, 0) if no valid combination found that meets horsepower requirements within tugboat quantity limits.
+    - find_feasible_assignments (callable): def find_feasible_assignments(vessel_id: int, max_results: int = 3, solution: Solution = None) -> list[dict]: Find a feasible complete assignment (berth + multi-tugboat services) for a vessel using ETA-centered heuristic search. Tries candidate inbound times near ETA (ETA ± {0,1,2,3,4}) in order of proximity to ETA. Uses tight scheduling with berth starting immediately after inbound service and outbound starting immediately after berthing. Returns immediately upon finding the first valid assignment. Returns list containing at most one dictionary with: {'berth_id': int, 'start_time': int, 'inbound_tugboats': list[tuple[int, int]], 'outbound_tugboats': list[tuple[int, int]], 'total_cost': float}. The tugboat lists contain multiple tuples of (tugboat_id, start_time) representing tugboat combinations that meet horsepower requirements. All timing constraints and horsepower constraints are properly handled. Returns empty list if no feasible assignment found.
+    - calculate_assignment_cost (callable): def calculate_assignment_cost(vessel_id: int, berth_id: int, start_time: int, inbound_tugboats: list, outbound_tugboats: list) -> float: Calculate the total cost for a specific vessel assignment including port time cost (Z2), ETA deviation cost (Z3), and tugboat utilization cost (Z4). The inbound_tugboats and outbound_tugboats parameters are lists of (tugboat_id, start_time) tuples representing multi-tugboat combinations. Returns float representing the assignment cost, or float('inf') if assignment is invalid.
+4. Instance Statistics (these Instance Statistics may help you to generation the following heuristic):
+   - num_vessels (int): Number of vessels.
+    - num_berths (int): Number of berths.
+    - num_tugboats (int): Number of tugboats.
+    - avg_vessel_size (float): Average vessel size.
+    - var_vessel_size (float): Variance of vessel sizes.
+    - total_required_hp (float): Total required horsepower for all vessels.
+    - total_available_hp (float): Total available horsepower from all tugboats.
+    - eta_span (float): Span between maximum and minimum ETA.
+    - avg_berthing_duration (float): Average berthing duration.
+    - vessel_arrival_density (float): Density of vessel arrivals (num_vessels / eta_span).
+    - avg_time_window_flex (float): Average flexibility in time windows (mean of early + late limits).
+    - berth_capacity_ratio (float): Ratio of average berth capacity to average vessel size.
+5. Current Solution Statistics (these Solution Statistics may help you to generation the following heuristic):
+    - assigned_vessels_fraction (float): Fraction of vessels with full service assignments (inbound, berthing, outbound).
+    - partial_objective_value (float): Partial objective value computed as weighted sum of Z1 to Z4 for the current assignments.
+    - unassigned_vessels (int): Number of vessels without full service assignments.
+    - berth_utilization (float): Utilization of berths based on assigned berthing durations.
+    - tug_utilization (float): Utilization of tugboats based on assigned service durations.
+    - avg_eta_deviation_assigned (float): Average ETA deviation for vessels with full assignments.
+    - remaining_hp_demand (float): Total horsepower requirement for unassigned vessels.
+    - schedule_progress (float): Progress as the maximum end time of assigned services normalized by time periods.
+    - full_service_completion_rate (float): Fraction of vessels with full and valid service assignments (no local violations).
+    - potential_conflict_ratio (float): Ratio of full assignments that have local violations.

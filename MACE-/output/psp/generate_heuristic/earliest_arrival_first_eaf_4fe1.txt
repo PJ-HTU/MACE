@@ -1,0 +1,978 @@
+user
+I am working on Hyper-heuristics for Combinatorial Operation (CO) problem.
+
+Currently, I am working on psp problem:
+Port Scheduling Problem (PSP) - Mathematical Model Description
+
+Problem Overview
+
+The Port Scheduling Problem (PSP) involves optimal allocation of vessels to berths with coordinated tugboat services. The system manages multiple berths with different capacity levels, multiple tugboats with varying horsepower capabilities, and multiple vessels with specific requirements and time constraints.
+
+Key Problem Characteristics
+
+Each vessel must receive three sequential services if allocated:
+1. Inbound tugboat service - to guide vessel to berth
+2. Berthing service - vessel occupies berth for cargo operations
+3. Outbound tugboat service - to guide vessel away from berth
+
+The services must be properly sequenced and temporally connected within allowable time tolerances. Vessels that cannot receive complete service are penalized heavily.
+
+Mathematical Model Formulation
+
+Decision Variables
+- x_ijt ∈ {0,1}: vessel i starts berthing at berth j at time t (only if berth capacity Cⱼ ≥ vessel size Sᵢ)
+- y^in_ikt ∈ {0,1}: tugboat k starts inbound service for vessel i at time t
+- y^out_ikt ∈ {0,1}: tugboat k starts outbound service for vessel i at time t
+- z^in_it ∈ {0,1}: auxiliary variable indicating vessel i starts inbound tugboat service at time t
+- z^out_it ∈ {0,1}: auxiliary variable indicating vessel i starts outbound tugboat service at time t
+- u^early_i ≥ 0: early deviation from ETA for vessel i
+- u^late_i ≥ 0: late deviation from ETA for vessel i
+
+Objective Function
+Minimize: λ₁Z₁ + λ₂Z₂ + λ₃Z₃ + λ₄Z₄
+
+Where:
+- Z₁ = Σᵢ M·αᵢ·(1 - Σⱼ Σₜ x_ijt) [Unserved vessel penalty]
+- Z₂ = Σᵢ αᵢ·βᵢ·[Σₜ (t + τ^out_i)·z^out_it - Σₜ t·z^in_it] [Total port time cost]
+- Z₃ = Σᵢ αᵢ·γᵢ·(u^early_i + u^late_i) [ETA deviation cost]
+- Z₄ = Σₖ Σᵢ Σₜ cₖ·(τ^in_i·y^in_ikt + τ^out_i·y^out_ikt) [Tugboat utilization cost]
+
+Complete Constraint Set
+
+Constraint (1): Vessel Assignment Constraints
+Σⱼ Σₜ x_ijt ≤ 1, ∀i ∈ I
+Each vessel can be assigned at most once.
+
+Constraint (2): Vessel-Berth Compatibility Constraints
+x_ijt = 0, ∀i ∈ I, j ∈ J, t ∈ T : Cⱼ < Sᵢ
+Vessels can only be assigned to berths with sufficient capacity.
+
+Constraint (3): Inbound Tugboat Service Coupling
+Σₜ z^in_it = Σⱼ Σₜ x_ijt, ∀i ∈ I
+If a vessel is assigned to any berth, it must receive inbound tugboat service exactly once.
+
+Constraint (4): Outbound Tugboat Service Coupling
+Σₜ z^out_it = Σⱼ Σₜ x_ijt, ∀i ∈ I
+If a vessel is assigned to any berth, it must receive outbound tugboat service exactly once.
+
+Constraint (5): Tugboat Horsepower Constraints for Inbound
+Σₖ Pₖ·y^in_ikt ≥ P^req_i·z^in_it, ∀i ∈ I, t ∈ T
+Assigned tugboats must provide sufficient total horsepower for inbound service.
+
+Constraint (6): Tugboat Horsepower Constraints for Outbound
+Σₖ Pₖ·y^out_ikt ≥ P^req_i·z^out_it, ∀i ∈ I, t ∈ T
+Assigned tugboats must provide sufficient total horsepower for outbound service.
+
+Constraint (7): Tugboat Quantity Limits for Inbound
+Σₖ y^in_ikt ≤ H_max·z^in_it, ∀i ∈ I, t ∈ T
+Maximum number of tugboats per inbound service is limited to H_max.
+
+Constraint (8): Tugboat Quantity Limits for Outbound
+Σₖ y^out_ikt ≤ H_max·z^out_it, ∀i ∈ I, t ∈ T
+Maximum number of tugboats per outbound service is limited to H_max.
+
+Constraint (9): Auxiliary Variable Definition for Inbound
+z^in_it ≤ Σₖ y^in_ikt, ∀i ∈ I, t ∈ T
+Auxiliary variables for inbound service are properly linked to tugboat assignment variables.
+Additional requirement: All tugboats serving the same vessel for inbound service must start at the same time.
+
+Constraint (10): Auxiliary Variable Definition for Outbound
+z^out_it ≤ Σₖ y^out_ikt, ∀i ∈ I, t ∈ T
+Auxiliary variables for outbound service are properly linked to tugboat assignment variables.
+Additional requirement: All tugboats serving the same vessel for outbound service must start at the same time.
+
+Constraint (11): Berth Capacity Constraints
+Σᵢ Σₜ'=max(1,t-Dᵢ+1)^t x_ijt' ≤ 1, ∀j ∈ J, t ∈ T
+Each berth can accommodate at most one vessel at any time, considering vessel duration Dᵢ.
+
+Constraint (12): Tugboat Capacity Constraints (with Preparation Time)
+Σᵢ [Σₜ'=max(1,t-τ^in_i-ρ^in+1)^t y^in_ikt' + Σₜ'=max(1,t-τ^out_i-ρ^out+1)^t y^out_ikt'] ≤ 1, ∀k ∈ K, t ∈ T
+Each tugboat can provide only one service at a time, including preparation time between services.
+
+Constraint (13): Inbound Service Time Window Constraints
+y^in_ikt = 0, ∀i ∈ I, k ∈ K, t < ETAᵢ - Δ^early_i or t > ETAᵢ + Δ^late_i
+Tugboat inbound services can only start within the vessel's ETA allowed time window.
+
+Constraint (14): Inbound-Berthing Timing Sequence Constraints
+0 ≤ Σⱼ Σₜ t·x_ijt - Σₜ (t + τ^in_i)·z^in_it ≤ ε_time·Σⱼ Σₜ x_ijt, ∀i ∈ I
+Berthing must start after inbound service completion, within tolerance ε_time.
+
+Constraint (15): Berthing-Outbound Timing Sequence Constraints
+0 ≤ Σₜ t·z^out_it - Σⱼ Σₜ (t + Dᵢ)·x_ijt ≤ ε_time·Σⱼ Σₜ x_ijt, ∀i ∈ I
+Outbound service must start after berthing completion, within tolerance ε_time.
+
+Constraint (16): ETA Deviation Linearization Constraints
+Σₜ t·z^in_it = ETAᵢ + u^late_i - u^early_i, ∀i ∈ I
+Linear representation of ETA deviations for cost calculation.
+
+Constraint (17): Variable Domain Constraints
+u^early_i, u^late_i ≥ 0, ∀i ∈ I
+x_ijt, y^in_ikt, y^out_ikt, z^in_it, z^out_it ∈ {0,1}, ∀i ∈ I, j ∈ J, k ∈ K, t ∈ T
+Variable domain constraints for all decision variables.
+
+Input Parameters
+
+Vessel Parameters
+- Sᵢ: Size level of vessel i
+- ETAᵢ: Expected arrival time of vessel i
+- Dᵢ: Berthing duration required by vessel i
+- τ^in_i, τ^out_i: Inbound and outbound tugboat service durations for vessel i
+- P^req_i: Minimum tugboat horsepower required by vessel i
+- Δ^early_i, Δ^late_i: Maximum allowed early/late deviations from ETA for vessel i
+- αᵢ, βᵢ, γᵢ: Priority weight, unit waiting cost, and JIT deviation unit cost for vessel i
+
+Berth Parameters
+- Cⱼ: Capacity level of berth j
+
+Tugboat Parameters
+- Pₖ: Horsepower of tugboat k
+- cₖ: Unit time usage cost of tugboat k
+- ρ^in, ρ^out: Preparation times for tugboats after completing inbound/outbound services
+
+System Parameters
+- H_max: Maximum number of tugboats allowed per service
+- ε_time: Maximum allowed time deviation in sequencing constraints
+- M: Large penalty parameter for unserved vessels
+- λ₁, λ₂, λ₃, λ₄: Weighting coefficients in the objective function
+
+Problem Constraints Summary
+
+The model ensures that:
+1. Each vessel receives complete service (inbound → berthing → outbound) or no service at all
+2. Services follow proper temporal sequence with bounded time gaps
+3. Resource capacity constraints are respected for both berths and tugboats
+4. Tugboat horsepower and quantity requirements are satisfied
+5. Tugboat inbound services can only start within the vessel's ETA allowed time window.
+6. Berth-vessel size compatibility is maintained
+7. Tugboat availability considering preparation times is enforced
+8. All tugboats serving the same vessel must start their service at the same time
+
+To support different heuristic algorithms, I build the Solution and Operator framework.
+The Solution is designed as:
+class Solution:
+    """The solution of Port Scheduling Problem supporting multi-tugboat services.
+Attributes:
+    vessel_assignments (dict): Maps vessel_id to (berth_id, start_time) tuple. None if vessel is unassigned.
+    tugboat_inbound_assignments (dict): Maps vessel_id to list of tuple (tugboat_id, start_time) for inbound service.
+    tugboat_outbound_assignments (dict): Maps vessel_id to list of tuple (tugboat_id, start_time) for outbound service."""
+    def __init__(self, vessel_assignments: dict=None, tugboat_inbound_assignments: dict=None, tugboat_outbound_assignments: dict=None):
+        self.vessel_assignments = vessel_assignments or {}
+        self.tugboat_inbound_assignments = tugboat_inbound_assignments or {}
+        self.tugboat_outbound_assignments = tugboat_outbound_assignments or {}
+Operator servers as a mechanism to modify solution, which enables the application of heuristic algorithms. 
+To support heuristic algorithm, we have build the following operators:
+class CompleteVesselAssignmentOperator(BaseOperator):
+    """Assign a vessel to berth with complete multi-tugboat services and feasibility validation."""
+    def __init__(self, vessel_id: int, berth_id: int, start_time: int, inbound_tugboats: List[Tuple[int, int]], outbound_tugboats: List[Tuple[int, int]]):
+        self.vessel_id = vessel_id
+        self.berth_id = berth_id
+        self.start_time = start_time
+        self.inbound_tugboats = inbound_tugboats
+        self.outbound_tugboats = outbound_tugboats
+    def run(self, solution: Solution) -> Solution:
+        if not self.inbound_tugboats or not self.outbound_tugboats:
+            return copy.deepcopy(solution)
+        if len(self.inbound_tugboats) > 1:
+            inbound_times = [start_time for _, start_time in self.inbound_tugboats]
+            if len(set(inbound_times)) > 1:
+                return copy.deepcopy(solution)
+        if len(self.outbound_tugboats) > 1:
+            outbound_times = [start_time for _, start_time in self.outbound_tugboats]
+            if len(set(outbound_times)) > 1:
+                return copy.deepcopy(solution)
+        new_vessel_assignments = copy.deepcopy(solution.vessel_assignments)
+        new_tugboat_inbound = copy.deepcopy(solution.tugboat_inbound_assignments)
+        new_tugboat_outbound = copy.deepcopy(solution.tugboat_outbound_assignments)
+        new_vessel_assignments[self.vessel_id] = (self.berth_id, self.start_time)
+        new_tugboat_inbound[self.vessel_id] = copy.deepcopy(self.inbound_tugboats)
+        new_tugboat_outbound[self.vessel_id] = copy.deepcopy(self.outbound_tugboats)
+        return Solution(vessel_assignments=new_vessel_assignments, tugboat_inbound_assignments=new_tugboat_inbound, tugboat_outbound_assignments=new_tugboat_outbound)
+class UnassignVesselOperator(BaseOperator):
+    """Remove assignment for a vessel."""
+    def __init__(self, vessel_id: int):
+        self.vessel_id = vessel_id
+    def run(self, solution: Solution) -> Solution:
+        new_vessel_assignments = copy.deepcopy(solution.vessel_assignments)
+        new_tugboat_inbound = copy.deepcopy(solution.tugboat_inbound_assignments)
+        new_tugboat_outbound = copy.deepcopy(solution.tugboat_outbound_assignments)
+        new_vessel_assignments[self.vessel_id] = None
+        new_tugboat_inbound[self.vessel_id] = []
+        new_tugboat_outbound[self.vessel_id] = []
+        return Solution(vessel_assignments=new_vessel_assignments, tugboat_inbound_assignments=new_tugboat_inbound, tugboat_outbound_assignments=new_tugboat_outbound)
+
+In pursuit of augmenting our heuristic algorithmic suite, we require the following standardized heuristic function signature:
+def heuristic(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[TargetOperatorType, dict]:
+The inputs are:
+problem_state (dict): A dictionary containing the problem state information, organized into five categories of keys:
+1. Input Data:
+    - vessel_num (int): The total number of vessels requesting berthing service.
+    - berth_num (int): The total number of berths available at the port.
+    - tugboat_num (int): The total number of tugboats available for service.
+    - time_periods (int): The total number of time periods in the scheduling horizon.
+    - vessel_sizes (numpy.ndarray): 1D array of size levels for each vessel (Si).
+    - berth_capacities (numpy.ndarray): 1D array of capacity levels for each berth (Cj).
+    - vessel_etas (numpy.ndarray): 1D array of expected arrival times for each vessel (ETAi).
+    - vessel_durations (numpy.ndarray): 1D array of berthing durations required by each vessel (Di).
+    - vessel_inbound_service_times (numpy.ndarray): 1D array of inbound tugboat service durations for each vessel.
+    - vessel_outbound_service_times (numpy.ndarray): 1D array of outbound tugboat service durations for each vessel.
+    - vessel_priority_weights (numpy.ndarray): 1D array of priority weights for each vessel.
+    - vessel_waiting_costs (numpy.ndarray): 1D array of unit waiting costs for each vessel.
+    - vessel_jit_costs (numpy.ndarray): 1D array of JIT deviation unit costs for each vessel.
+    - vessel_horsepower_requirements (numpy.ndarray): 1D array of minimum tugboat horsepower required by each vessel.
+    - vessel_early_limits (numpy.ndarray): 1D array of maximum early arrival allowances for each vessel.
+    - vessel_late_limits (numpy.ndarray): 1D array of maximum late arrival allowances for each vessel.
+    - tugboat_horsepower (numpy.ndarray): 1D array of horsepower for each tugboat.
+    - tugboat_costs (numpy.ndarray): 1D array of unit time usage costs for each tugboat.
+    - inbound_preparation_time (int): Preparation time for tugboats after completing inbound service (rho_in).
+    - outbound_preparation_time (int): Preparation time for tugboats after completing outbound service (rho_out).
+    - max_tugboats_per_service (int): Maximum number of tugboats allowed for a single service (Hmax).
+    - time_constraint_tolerance (float): Maximum allowed time deviation in timing constraints (epsilon_time).
+    - penalty_parameter (float): Large penalty parameter for unserved vessels.
+    - objective_weights (numpy.ndarray): 1D array of four weighting coefficients [lambda_1, lambda_2, lambda_3, lambda_4] for objective function components.
+2. Current Solution:
+    - current_solution (Solution): Current solution instance.
+    - total_scheduling_cost (float): The total scheduling cost of the current solution.
+3. Helper Functions (these Functions may help you to generation the following heuristic):
+    - get_problem_state (callable): def get_problem_state(solution: Solution) -> dict: The function to get the complete problem state for given solution without modifying it. Returns a dictionary containing state information.
+    - validation_solution (callable): def validation_solution(solution: Solution = None) -> bool: The function to check whether the solution is valid according to all mathematical model constraints. If solution is None, checks current solution. Returns True if valid, False otherwise.
+    - get_unassigned_vessels (callable): def get_unassigned_vessels(solution: Solution = None) -> list[int]: Get list of vessel IDs that have not been assigned to any berth. If solution is None, uses current solution. Returns list of integers representing unassigned vessel IDs (range 0 to vessel_num-1).
+    - get_vessel_time_window (callable): def get_vessel_time_window(vessel_id: int) -> tuple[int, int]: Get the feasible time window (earliest_start, latest_start) for vessel's inbound service considering ETA and early/late limits. Returns tuple of two integers representing the valid start time range.
+    - get_compatible_berths (callable): def get_compatible_berths(vessel_id: int) -> list[int]: Get list of berth IDs that can serve the vessel based on capacity level compatibility (berth_capacity >= vessel_size). Returns list of integers representing compatible berth IDs (range 0 to berth_num-1).
+    - is_berth_available (callable): def is_berth_available(berth_id: int, start_time: int, duration: int, solution: Solution = None) -> bool: Check if a berth is free during the specified time period [start_time, start_time + duration) without conflicts with existing assignments. If solution is None, uses current solution. Returns True if available, False if conflicted.
+    - is_tugboat_available (callable): def is_tugboat_available(tugboat_id: int, start_time: int, duration: int, prep_time: int = 0, solution: Solution = None) -> bool: Check if a tugboat is free during the specified service period [start_time, start_time + duration + prep_time) including preparation time. If solution is None, uses current solution. Returns True if available, False if conflicted.
+    - find_tugboat_combination (callable): def find_tugboat_combination(vessel_id: int, start_time: int, service_type: str, solution: Solution = None) -> tuple: Find a tugboat combination with sufficient horsepower for the service using greedy selection. The service_type parameter accepts 'inbound' or 'outbound'. Uses greedy strategy sorting tugboats by horsepower descending to minimize the number of tugboats needed. If greedy fails, performs exhaustive search to find any valid combination. Returns (selected_tugboats, total_cost) where selected_tugboats is a list of (tugboat_id, start_time) tuples, or (None, 0) if no valid combination found that meets horsepower requirements within tugboat quantity limits.
+    - find_feasible_assignments (callable): def find_feasible_assignments(vessel_id: int, max_results: int = 3, solution: Solution = None) -> list[dict]: Find a feasible complete assignment (berth + multi-tugboat services) for a vessel using ETA-centered heuristic search. Tries candidate inbound times near ETA (ETA ± {0,1,2,3,4}) in order of proximity to ETA. Uses tight scheduling with berth starting immediately after inbound service and outbound starting immediately after berthing. Returns immediately upon finding the first valid assignment. Returns list containing at most one dictionary with: {'berth_id': int, 'start_time': int, 'inbound_tugboats': list[tuple[int, int]], 'outbound_tugboats': list[tuple[int, int]], 'total_cost': float}. The tugboat lists contain multiple tuples of (tugboat_id, start_time) representing tugboat combinations that meet horsepower requirements. All timing constraints and horsepower constraints are properly handled. Returns empty list if no feasible assignment found.
+    - calculate_assignment_cost (callable): def calculate_assignment_cost(vessel_id: int, berth_id: int, start_time: int, inbound_tugboats: list, outbound_tugboats: list) -> float: Calculate the total cost for a specific vessel assignment including port time cost (Z2), ETA deviation cost (Z3), and tugboat utilization cost (Z4). The inbound_tugboats and outbound_tugboats parameters are lists of (tugboat_id, start_time) tuples representing multi-tugboat combinations. Returns float representing the assignment cost, or float('inf') if assignment is invalid.
+4. Instance Statistics (these Instance Statistics may help you to generation the following heuristic):
+   - num_vessels (int): Number of vessels.
+    - num_berths (int): Number of berths.
+    - num_tugboats (int): Number of tugboats.
+    - avg_vessel_size (float): Average vessel size.
+    - var_vessel_size (float): Variance of vessel sizes.
+    - total_required_hp (float): Total required horsepower for all vessels.
+    - total_available_hp (float): Total available horsepower from all tugboats.
+    - eta_span (float): Span between maximum and minimum ETA.
+    - avg_berthing_duration (float): Average berthing duration.
+    - vessel_arrival_density (float): Density of vessel arrivals (num_vessels / eta_span).
+    - avg_time_window_flex (float): Average flexibility in time windows (mean of early + late limits).
+    - berth_capacity_ratio (float): Ratio of average berth capacity to average vessel size.
+5. Current Solution Statistics (these Solution Statistics may help you to generation the following heuristic):
+    - assigned_vessels_fraction (float): Fraction of vessels with full service assignments (inbound, berthing, outbound).
+    - partial_objective_value (float): Partial objective value computed as weighted sum of Z1 to Z4 for the current assignments.
+    - unassigned_vessels (int): Number of vessels without full service assignments.
+    - berth_utilization (float): Utilization of berths based on assigned berthing durations.
+    - tug_utilization (float): Utilization of tugboats based on assigned service durations.
+    - avg_eta_deviation_assigned (float): Average ETA deviation for vessels with full assignments.
+    - remaining_hp_demand (float): Total horsepower requirement for unassigned vessels.
+    - schedule_progress (float): Progress as the maximum end time of assigned services normalized by time periods.
+    - full_service_completion_rate (float): Fraction of vessels with full and valid service assignments (no local violations).
+    - potential_conflict_ratio (float): Ratio of full assignments that have local violations.
+algorithm_data(dict): Algorithm data contains the data that necessary for some algorithms.
+Other hyper-parameters in kwargs.
+The outputs includes the operator that must be an instance of a predefined target operator type and updated algorithm dict, which contains new information for future work for both this or other algorithm.
+
+Please consider is psp a combinatorial operation problem and can be solved by heuristics?
+If you think this problem is not a combinatorial operation problem or the solution, operator, data are incorrect, response ***is_cop:no*** to me, or response ***is_cop:yes***.
+
+The response format is very important. For better communication, please respond to me in this format:
+***is_cop:yes/no***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***is_cop:yes***
+
+The Port Scheduling Problem (PSP) is indeed a classic example of a combinatorial optimization (CO) problem. It involves discrete decision-making—such as assigning vessels to specific berths at discrete times, selecting combinations of tugboats for inbound/outbound services, and ensuring feasibility under constraints like capacity, horsepower requirements, timing sequences, and resource availability. The objective is to minimize a multi-component cost function (penalties for unserved vessels, port time, ETA deviations, and tugboat usage), which aligns with CO characteristics: a finite search space of feasible combinations, NP-hard complexity due to scheduling and resource allocation interdependencies, and the need for optimization over exponential possibilities.
+
+Heuristics (and hyper-heuristics) are well-suited for solving PSP, as exact methods (e.g., MILP solvers) may be intractable for realistic instances with large time horizons, multiple vessels, berths, and tugboats. Your framework supports this effectively: the Solution class encapsulates the state (assignments for vessels and tugboats), operators like CompleteVesselAssignmentOperator and UnassignVesselOperator enable local search/modifications, and the provided helper functions (e.g., find_tugboat_combination, find_feasible_assignments) facilitate greedy, nearest-neighbor, or metaheuristic approaches. The heuristic signature allows generating targeted operators (e.g., for assigning unserved vessels or resolving conflicts) while updating algorithm data for iterative improvement, making it extensible for methods like genetic algorithms, simulated annealing, or hyper-heuristic selection.
+
+Potential enhancements: Consider adding operators for swapping assignments between vessels or adjusting timings to handle dynamic densities (using instance stats like vessel_arrival_density). Validation via the mathematical constraints ensures heuristic-generated solutions remain feasible or quantifiable in terms of violations. Overall, the setup is solid and correctly oriented toward CO heuristics.
+------------------------------------------------------------------------------------
+
+user
+I need your help to design different 5 basic heuristics for the psp problem.
+
+## Heuristic Requirements:
+1. **Constructive Nature**: Each heuristic must be constructive (or constructive followed by improvement), and build solutions step-by-step from scratch.
+
+2. **Diversity**: The 5 heuristics should represent different strategies to ensure diversity in solution approaches.
+
+The problem will work on following data.
+Please try to understand the data and generate based on them, especially setting the default value for hyper-parameters:
+All data is possible
+
+The response format is very important. For better communication, please respond to me in this format:
+***heuristic:
+heuristic_name: only text description
+heuristic_name: only text description
+....
+***
+Ensure there is no other content (including blank lines) inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***heuristic:
+Earliest Arrival First (EAF): Sort unassigned vessels by increasing ETA; for each vessel in order, use find_feasible_assignments to select the earliest available assignment within its time window, preferring the compatible berth with highest remaining capacity; apply CompleteVesselAssignmentOperator to add the assignment if feasible, tracking total cost.
+Largest Vessel First (LVF): Prioritize unassigned vessels by decreasing vessel size (S_i); for each, identify compatible berths via get_compatible_berths, then use find_tugboat_combination for inbound/outbound at the median of the vessel's time window; assign to the berth with lowest current utilization using is_berth_available, applying the operator only if all resources (tugboats via is_tugboat_available) are free.
+Cost-Minimizing Greedy (CMG): Iterate over unassigned vessels in random order; for each, generate up to 5 candidate assignments via find_feasible_assignments, compute costs with calculate_assignment_cost, and select the one with minimal marginal cost increase to total_scheduling_cost; apply CompleteVesselAssignmentOperator for the best, updating solution statistics.
+Randomized Sequential (RS): Randomly permute all vessel IDs; sequentially attempt assignments starting from an empty solution; for each vessel, sample 3 random start times within get_vessel_time_window, check berth/tugboat availability, and use find_tugboat_combination; apply operator for the first feasible option found, defaulting to unassign if none.
+Utilization-Balanced (UB): Sort vessels by decreasing priority weight (α_i); for each, select the compatible berth with the lowest current utilization (from berth_utilization stat); center the start time on ETA, adjust by up to avg_time_window_flex to fit availability; find tugboat combos minimizing tug_utilization impact, apply operator if validation_solution passes post-assignment.
+***
+
+These heuristics are designed to be constructive, starting from an empty solution (all vessels unassigned) and iteratively building by applying CompleteVesselAssignmentOperator (or UnassignVesselOperator implicitly for failures). Diversity comes from prioritization (ETA, size, cost, random, priority/utilization), selection criteria (earliest, median/random, cost-min, balanced), and use of helpers like find_feasible_assignments for feasibility. Default hyperparameters: max_results=3 in find_feasible_assignments, up to 5 candidates in CMG, sample size=3 in RS; all leverage instance stats (e.g., avg_time_window_flex=mean(Δ^early_i + Δ^late_i)) for robustness. An improvement phase could follow each by re-running on unassigned vessels, but kept basic as per requirements. For implementation, TargetOperatorType would be CompleteVesselAssignmentOperator or UnassignVesselOperator, with algorithm_data updated to include iteration count or partial costs.
+------------------------------------------------------------------------------------
+
+user
+Based on previous discuss, we get the heuristic Earliest Arrival First (EAF):
+ Sort unassigned vessels by increasing ETA; for each vessel in order, use find_feasible_assignments to select the earliest available assignment within its time window, preferring the compatible berth with highest remaining capacity; apply CompleteVesselAssignmentOperator to add the assignment if feasible, tracking total cost..
+
+Now please implement it in python function earliest_arrival_first_eaf_4fe1.
+
+To implement this heuristic function in python, please note:
+1. We can assume that Solution and all Operators are imported.
+2. The operator type must be defined previously, do not create a new one in your code.
+3. Never modify the data in problem_state.
+4. All hyper parameters in kwargs should be set a default value.
+5. Any reasonable partial solution may be used as input, such as an empty solution.
+6. Comments in the code are very important. They must clearly explain which hyper-parameters are required by the algorithm (i.e., the parameters in **kwargs), how the algorithm proceeds, and under what circumstances it will not return any operator or will return an empty operator. We hope that people can understand the principles and workflow of the algorithm clearly just by reading the comments, without needing to look at the code.
+7. The name of function must be earliest_arrival_first_eaf_4fe1. The TargetOperatorType should be replaced by real returned operator type.
+8. No any omissions or placeholders, I'm just going to use the code.
+9. For the algorithm to update the algorithm_data, do not modify directly "algorithm_data["abc"] = 123", we should return operator, {"abc": 123}.For algorithm that do not update them, just return operator, {}
+10. For the circumstances that algorithm return empty operator, please return None, {}.
+11. Do not forget to check whether the content is empty when calculating the min/max/average/std/..., such as when using min([distance[node][other] for other in nodes if other != node]).
+12. Make the result must be valid.
+13. Do not forget the input problem_state:
+problem_state (dict): A dictionary containing the problem state information, organized into five categories of keys:
+1. Input Data:
+    - vessel_num (int): The total number of vessels requesting berthing service.
+    - berth_num (int): The total number of berths available at the port.
+    - tugboat_num (int): The total number of tugboats available for service.
+    - time_periods (int): The total number of time periods in the scheduling horizon.
+    - vessel_sizes (numpy.ndarray): 1D array of size levels for each vessel (Si).
+    - berth_capacities (numpy.ndarray): 1D array of capacity levels for each berth (Cj).
+    - vessel_etas (numpy.ndarray): 1D array of expected arrival times for each vessel (ETAi).
+    - vessel_durations (numpy.ndarray): 1D array of berthing durations required by each vessel (Di).
+    - vessel_inbound_service_times (numpy.ndarray): 1D array of inbound tugboat service durations for each vessel.
+    - vessel_outbound_service_times (numpy.ndarray): 1D array of outbound tugboat service durations for each vessel.
+    - vessel_priority_weights (numpy.ndarray): 1D array of priority weights for each vessel.
+    - vessel_waiting_costs (numpy.ndarray): 1D array of unit waiting costs for each vessel.
+    - vessel_jit_costs (numpy.ndarray): 1D array of JIT deviation unit costs for each vessel.
+    - vessel_horsepower_requirements (numpy.ndarray): 1D array of minimum tugboat horsepower required by each vessel.
+    - vessel_early_limits (numpy.ndarray): 1D array of maximum early arrival allowances for each vessel.
+    - vessel_late_limits (numpy.ndarray): 1D array of maximum late arrival allowances for each vessel.
+    - tugboat_horsepower (numpy.ndarray): 1D array of horsepower for each tugboat.
+    - tugboat_costs (numpy.ndarray): 1D array of unit time usage costs for each tugboat.
+    - inbound_preparation_time (int): Preparation time for tugboats after completing inbound service (rho_in).
+    - outbound_preparation_time (int): Preparation time for tugboats after completing outbound service (rho_out).
+    - max_tugboats_per_service (int): Maximum number of tugboats allowed for a single service (Hmax).
+    - time_constraint_tolerance (float): Maximum allowed time deviation in timing constraints (epsilon_time).
+    - penalty_parameter (float): Large penalty parameter for unserved vessels.
+    - objective_weights (numpy.ndarray): 1D array of four weighting coefficients [lambda_1, lambda_2, lambda_3, lambda_4] for objective function components.
+2. Current Solution:
+    - current_solution (Solution): Current solution instance.
+    - total_scheduling_cost (float): The total scheduling cost of the current solution.
+3. Helper Functions (these Functions may help you to generation the following heuristic):
+    - get_problem_state (callable): def get_problem_state(solution: Solution) -> dict: The function to get the complete problem state for given solution without modifying it. Returns a dictionary containing state information.
+    - validation_solution (callable): def validation_solution(solution: Solution = None) -> bool: The function to check whether the solution is valid according to all mathematical model constraints. If solution is None, checks current solution. Returns True if valid, False otherwise.
+    - get_unassigned_vessels (callable): def get_unassigned_vessels(solution: Solution = None) -> list[int]: Get list of vessel IDs that have not been assigned to any berth. If solution is None, uses current solution. Returns list of integers representing unassigned vessel IDs (range 0 to vessel_num-1).
+    - get_vessel_time_window (callable): def get_vessel_time_window(vessel_id: int) -> tuple[int, int]: Get the feasible time window (earliest_start, latest_start) for vessel's inbound service considering ETA and early/late limits. Returns tuple of two integers representing the valid start time range.
+    - get_compatible_berths (callable): def get_compatible_berths(vessel_id: int) -> list[int]: Get list of berth IDs that can serve the vessel based on capacity level compatibility (berth_capacity >= vessel_size). Returns list of integers representing compatible berth IDs (range 0 to berth_num-1).
+    - is_berth_available (callable): def is_berth_available(berth_id: int, start_time: int, duration: int, solution: Solution = None) -> bool: Check if a berth is free during the specified time period [start_time, start_time + duration) without conflicts with existing assignments. If solution is None, uses current solution. Returns True if available, False if conflicted.
+    - is_tugboat_available (callable): def is_tugboat_available(tugboat_id: int, start_time: int, duration: int, prep_time: int = 0, solution: Solution = None) -> bool: Check if a tugboat is free during the specified service period [start_time, start_time + duration + prep_time) including preparation time. If solution is None, uses current solution. Returns True if available, False if conflicted.
+    - find_tugboat_combination (callable): def find_tugboat_combination(vessel_id: int, start_time: int, service_type: str, solution: Solution = None) -> tuple: Find a tugboat combination with sufficient horsepower for the service using greedy selection. The service_type parameter accepts 'inbound' or 'outbound'. Uses greedy strategy sorting tugboats by horsepower descending to minimize the number of tugboats needed. If greedy fails, performs exhaustive search to find any valid combination. Returns (selected_tugboats, total_cost) where selected_tugboats is a list of (tugboat_id, start_time) tuples, or (None, 0) if no valid combination found that meets horsepower requirements within tugboat quantity limits.
+    - find_feasible_assignments (callable): def find_feasible_assignments(vessel_id: int, max_results: int = 3, solution: Solution = None) -> list[dict]: Find a feasible complete assignment (berth + multi-tugboat services) for a vessel using ETA-centered heuristic search. Tries candidate inbound times near ETA (ETA ± {0,1,2,3,4}) in order of proximity to ETA. Uses tight scheduling with berth starting immediately after inbound service and outbound starting immediately after berthing. Returns immediately upon finding the first valid assignment. Returns list containing at most one dictionary with: {'berth_id': int, 'start_time': int, 'inbound_tugboats': list[tuple[int, int]], 'outbound_tugboats': list[tuple[int, int]], 'total_cost': float}. The tugboat lists contain multiple tuples of (tugboat_id, start_time) representing tugboat combinations that meet horsepower requirements. All timing constraints and horsepower constraints are properly handled. Returns empty list if no feasible assignment found.
+    - calculate_assignment_cost (callable): def calculate_assignment_cost(vessel_id: int, berth_id: int, start_time: int, inbound_tugboats: list, outbound_tugboats: list) -> float: Calculate the total cost for a specific vessel assignment including port time cost (Z2), ETA deviation cost (Z3), and tugboat utilization cost (Z4). The inbound_tugboats and outbound_tugboats parameters are lists of (tugboat_id, start_time) tuples representing multi-tugboat combinations. Returns float representing the assignment cost, or float('inf') if assignment is invalid.
+4. Instance Statistics (these Instance Statistics may help you to generation the following heuristic):
+   - num_vessels (int): Number of vessels.
+    - num_berths (int): Number of berths.
+    - num_tugboats (int): Number of tugboats.
+    - avg_vessel_size (float): Average vessel size.
+    - var_vessel_size (float): Variance of vessel sizes.
+    - total_required_hp (float): Total required horsepower for all vessels.
+    - total_available_hp (float): Total available horsepower from all tugboats.
+    - eta_span (float): Span between maximum and minimum ETA.
+    - avg_berthing_duration (float): Average berthing duration.
+    - vessel_arrival_density (float): Density of vessel arrivals (num_vessels / eta_span).
+    - avg_time_window_flex (float): Average flexibility in time windows (mean of early + late limits).
+    - berth_capacity_ratio (float): Ratio of average berth capacity to average vessel size.
+5. Current Solution Statistics (these Solution Statistics may help you to generation the following heuristic):
+    - assigned_vessels_fraction (float): Fraction of vessels with full service assignments (inbound, berthing, outbound).
+    - partial_objective_value (float): Partial objective value computed as weighted sum of Z1 to Z4 for the current assignments.
+    - unassigned_vessels (int): Number of vessels without full service assignments.
+    - berth_utilization (float): Utilization of berths based on assigned berthing durations.
+    - tug_utilization (float): Utilization of tugboats based on assigned service durations.
+    - avg_eta_deviation_assigned (float): Average ETA deviation for vessels with full assignments.
+    - remaining_hp_demand (float): Total horsepower requirement for unassigned vessels.
+    - schedule_progress (float): Progress as the maximum end time of assigned services normalized by time periods.
+    - full_service_completion_rate (float): Fraction of vessels with full and valid service assignments (no local violations).
+    - potential_conflict_ratio (float): Ratio of full assignments that have local violations.
+
+For psp problem, take about following:
+1. Consider partial solution as input where some vessels may be unassigned.
+2. When calculating costs, consider all four components: unserved vessel penalties, port time costs, ETA deviation costs, and tugboat utilization costs.
+3. Make the result must be valid. 
+
+The problem will work on following data.
+Please try to understand the data and generate based on them, especially setting the default value for hyper-parameters:
+All data is possible
+
+The response format is very important. For better communication, please respond to me in this format:
+***python_code:
+from src.problems.psp.components import *
+import other_library (if necessary)
+def earliest_arrival_first_eaf_4fe1(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[TargetOperatorType, dict]:
+    """ Description for this heuristic algorithm.
+
+    Args:
+        problem_state (dict): The dictionary contains the problem state.. In this algorithm, the following items are necessary:
+            - necessary_key (value type): description
+            - necessary_key (value type): description
+            ...
+        (Optional and can be omitted if no algorithm data) algorithm_data (dict): The algorithm dictionary for current algorithm only. In this algorithm, the following items are necessary:
+            - necessary_key (value type): description
+            - necessary_key (value type): description
+            ...
+        (Optional and can be omitted if no hyper parameters data) introduction for hyper parameters in kwargs if used.
+
+    Returns:
+        Description of this operator.
+        Description of updated algorithm data.
+
+        ...
+    """
+Ensure there is no other content inside the ***, ,and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+
+------------------------------------------------------------------------------------
+
+assistant
+***python_code:
+from src.problems.psp.components import *
+import numpy as np
+
+def earliest_arrival_first_eaf_4fe1(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[CompleteVesselAssignmentOperator, dict]:
+    """
+    Earliest Arrival First (EAF) heuristic: Selects the unassigned vessel with the smallest ETA and attempts to assign it to the earliest feasible berth-time slot within its time window, preferring berths with the highest remaining capacity (time_periods - current occupied duration). Uses find_feasible_assignments to generate candidate assignments and selects the best one based on earliest start_time and then highest remaining capacity. Returns a CompleteVesselAssignmentOperator for this assignment if feasible; otherwise, returns None if no unassigned vessels remain or no feasible assignment exists for the selected vessel. This enables step-by-step construction on partial solutions by iteratively assigning one vessel per heuristic call.
+
+    Hyperparameters (in kwargs, with defaults):
+    - max_candidates (int, default=5): Maximum number of candidate assignments to generate via find_feasible_assignments for the selected vessel. Higher values increase search thoroughness but computational cost.
+
+    Args:
+        problem_state (dict): The dictionary contains the problem state. In this algorithm, the following items are necessary:
+            - current_solution (Solution): Current partial solution to extend.
+            - total_scheduling_cost (float): Current total cost (used for tracking but not modified here).
+            - vessel_num (int): Total number of vessels.
+            - time_periods (int): Total scheduling horizon for remaining capacity calculation.
+            - vessel_etas (numpy.ndarray): ETAs for sorting unassigned vessels.
+            - vessel_durations (numpy.ndarray): Berthing durations for occupied time computation.
+            - vessel_sizes (numpy.ndarray): Vessel sizes for compatibility (used indirectly via helpers).
+            - berth_capacities (numpy.ndarray): Berth capacities for preference in ties (used if needed).
+            - get_unassigned_vessels (callable): To retrieve list of unassigned vessel IDs.
+            - find_feasible_assignments (callable): To generate feasible assignment candidates for the vessel.
+        algorithm_data (dict): Not used in this algorithm; returned as empty dict.
+        **kwargs: Hyperparameters as described above.
+
+    Returns:
+        CompleteVesselAssignmentOperator or None: Operator to assign the selected vessel if a feasible assignment is found; None otherwise (no action if all vessels assigned or no feasible slot).
+        dict: Empty dict as no algorithm data is updated by this heuristic.
+    """
+    # Extract necessary data from problem_state (never modify original)
+    current_solution = problem_state['current_solution']
+    vessel_etas = problem_state['vessel_etas']
+    vessel_durations = problem_state['vessel_durations']
+    time_periods = problem_state['time_periods']
+    get_unassigned_vessels_func = problem_state['get_unassigned_vessels']
+    find_feasible_assignments_func = problem_state['find_feasible_assignments']
+
+    # Hyperparameters with defaults
+    max_candidates = kwargs.get('max_candidates', 5)
+
+    # Step 1: Get and sort unassigned vessels by increasing ETA
+    unassigned_vessels = get_unassigned_vessels_func(current_solution)
+    if not unassigned_vessels:
+        # No unassigned vessels; no action needed
+        return None, {}
+
+    # Sort by ETA ascending; select the earliest one for this step (enables iterative calls)
+    sorted_unassigned = sorted(unassigned_vessels, key=lambda v: vessel_etas[v])
+    selected_vessel = sorted_unassigned[0]
+
+    # Step 2: Compute current occupied durations per berth for remaining capacity
+    # Initialize occupied array for each berth (0 to berth_num-1, but size from context)
+    # Assume berth_num from problem_state; use np.zeros for safety
+    berth_num = problem_state['berth_num']
+    occupied_durations = np.zeros(berth_num)
+    vessel_assignments = current_solution.vessel_assignments
+    for v_id, assignment in vessel_assignments.items():
+        if assignment is not None:
+            berth_id, _ = assignment
+            occupied_durations[berth_id] += vessel_durations[v_id]
+
+    remaining_capacities = time_periods - occupied_durations
+
+    # Step 3: Generate feasible assignment candidates for the selected vessel
+    candidates = find_feasible_assignments_func(selected_vessel, max_results=max_candidates, solution=current_solution)
+    if not candidates:
+        # No feasible assignment for this vessel; no action
+        return None, {}
+
+    # Step 4: Select the best candidate: earliest start_time, then highest remaining capacity
+    # Sort candidates: primary key start_time asc, secondary remaining[berth_id] desc
+    def sort_key(cand):
+        s_time = cand['start_time']
+        b_id = cand['berth_id']
+        rem_cap = remaining_capacities[b_id]
+        return (s_time, -rem_cap)  # Negative for descending remaining
+
+    best_candidate = min(candidates, key=sort_key)
+
+    # Step 5: Ensure the assignment is valid (redundant check via helper, but confirm non-empty tugboats)
+    inbound_tugs = best_candidate['inbound_tugboats']
+    outbound_tugs = best_candidate['outbound_tugboats']
+    if not inbound_tugs or not outbound_tugs:
+        return None, {}
+
+    # All tugboats for inbound/outbound must start at same time (as per operator validation)
+    inbound_times = [t for _, t in inbound_tugs]
+    outbound_times = [t for _, t in outbound_tugs]
+    if len(set(inbound_times)) > 1 or len(set(outbound_times)) > 1:
+        return None, {}
+
+    # Step 6: Create the operator for the best assignment
+    operator = CompleteVesselAssignmentOperator(
+        vessel_id=selected_vessel,
+        berth_id=best_candidate['berth_id'],
+        start_time=best_candidate['start_time'],
+        inbound_tugboats=inbound_tugs,
+        outbound_tugboats=outbound_tugs
+    )
+
+    # The operator will be applied externally; no direct modification here
+    # Costs are tracked via total_scheduling_cost update post-application
+    return operator, {}
+***
+The implementation focuses on assigning one vessel per call—the earliest unassigned by ETA—to support iterative hyper-heuristic application on partial solutions. It computes remaining berth capacity as unused time slots (time_periods - sum of assigned durations per berth), assuming non-overlapping assignments (enforced by is_berth_available in helpers). This ensures validity as find_feasible_assignments handles all constraints (timing, resources, horsepower), and the operator applies only feasible complete services. If the current solution is empty, it starts assigning from scratch. No algorithm_data updates are needed, as solution stats are handled externally. Hyperparameter max_candidates defaults to 5 for balance; adjust higher for denser instances using vessel_arrival_density stat if extended. The code avoids modifying problem_state and uses safe checks for empty lists/sets.
+------------------------------------------------------------------------------------
+
+user
+To verify whether the code is correct, we conducted a smoke test.
+This is the test data:
+num_vessels:100
+num_berths:15
+num_tugboats:30
+avg_vessel_size:3.58
+var_vessel_size:1.16
+total_required_hp:346107
+total_available_hp:80275
+eta_span:15
+avg_berthing_duration:2.25
+vessel_arrival_density:6.67
+avg_time_window_flex:3.7
+berth_capacity_ratio:1.01
+
+We run the following operations:
+None
+
+The current solution are
+Port Scheduling Solution:
+Vessel Assignments:
+  Vessel 0: Unassigned
+  Vessel 1: Unassigned
+  Vessel 2: Unassigned
+  Vessel 3: Unassigned
+  Vessel 4: Unassigned
+  Vessel 5: Unassigned
+  Vessel 6: Unassigned
+  Vessel 7: Unassigned
+  Vessel 8: Unassigned
+  Vessel 9: Unassigned
+  Vessel 10: Unassigned
+  Vessel 11: Unassigned
+  Vessel 12: Unassigned
+  Vessel 13: Unassigned
+  Vessel 14: Unassigned
+  Vessel 15: Unassigned
+  Vessel 16: Unassigned
+  Vessel 17: Unassigned
+  Vessel 18: Unassigned
+  Vessel 19: Unassigned
+  Vessel 20: Unassigned
+  Vessel 21: Unassigned
+  Vessel 22: Unassigned
+  Vessel 23: Unassigned
+  Vessel 24: Unassigned
+  Vessel 25: Unassigned
+  Vessel 26: Unassigned
+  Vessel 27: Unassigned
+  Vessel 28: Unassigned
+  Vessel 29: Unassigned
+  Vessel 30: Unassigned
+  Vessel 31: Unassigned
+  Vessel 32: Unassigned
+  Vessel 33: Unassigned
+  Vessel 34: Unassigned
+  Vessel 35: Unassigned
+  Vessel 36: Unassigned
+  Vessel 37: Unassigned
+  Vessel 38: Unassigned
+  Vessel 39: Unassigned
+  Vessel 40: Unassigned
+  Vessel 41: Unassigned
+  Vessel 42: Unassigned
+  Vessel 43: Unassigned
+  Vessel 44: Unassigned
+  Vessel 45: Unassigned
+  Vessel 46: Unassigned
+  Vessel 47: Unassigned
+  Vessel 48: Unassigned
+  Vessel 49: Unassigned
+  Vessel 50: Unassigned
+  Vessel 51: Unassigned
+  Vessel 52: Unassigned
+  Vessel 53: Unassigned
+  Vessel 54: Unassigned
+  Vessel 55: Unassigned
+  Vessel 56: Unassigned
+  Vessel 57: Unassigned
+  Vessel 58: Unassigned
+  Vessel 59: Unassigned
+  Vessel 60: Unassigned
+  Vessel 61: Unassigned
+  Vessel 62: Unassigned
+  Vessel 63: Unassigned
+  Vessel 64: Unassigned
+  Vessel 65: Unassigned
+  Vessel 66: Unassigned
+  Vessel 67: Unassigned
+  Vessel 68: Unassigned
+  Vessel 69: Unassigned
+  Vessel 70: Unassigned
+  Vessel 71: Unassigned
+  Vessel 72: Unassigned
+  Vessel 73: Unassigned
+  Vessel 74: Unassigned
+  Vessel 75: Unassigned
+  Vessel 76: Unassigned
+  Vessel 77: Unassigned
+  Vessel 78: Unassigned
+  Vessel 79: Unassigned
+  Vessel 80: Unassigned
+  Vessel 81: Unassigned
+  Vessel 82: Unassigned
+  Vessel 83: Unassigned
+  Vessel 84: Unassigned
+  Vessel 85: Unassigned
+  Vessel 86: Unassigned
+  Vessel 87: Unassigned
+  Vessel 88: Unassigned
+  Vessel 89: Unassigned
+  Vessel 90: Unassigned
+  Vessel 91: Unassigned
+  Vessel 92: Unassigned
+  Vessel 93: Unassigned
+  Vessel 94: Unassigned
+  Vessel 95: Unassigned
+  Vessel 96: Unassigned
+  Vessel 97: Unassigned
+  Vessel 98: Unassigned
+  Vessel 99: Unassigned
+Inbound Tugboat Services:
+Outbound Tugboat Services:
+
+with related problem state
+assigned_vessels_fraction:0.0
+partial_objective_value:110130.77
+unassigned_vessels:100
+berth_utilization:0.0
+tug_utilization:0.0
+avg_eta_deviation_assigned:0.0
+remaining_hp_demand:346107.0
+schedule_progress:0.0
+full_service_completion_rate:0.0
+potential_conflict_ratio:0.0
+
+Now we run earliest_arrival_first_eaf_4fe1 once and think about what the expected output is.
+
+The response format is very important. For better communication, please respond to me in this format:
+***expected_result:xxx***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***expected_result:A CompleteVesselAssignmentOperator instance assigning the unassigned vessel with the smallest ETA (likely vessel ID 0 or the one with min(vessel_etas)) to a compatible berth (selected by earliest start_time and highest remaining capacity, which is full for all initially) at a start_time near that vessel's ETA (from find_feasible_assignments candidates, e.g., ETA or ETA±1), with inbound_tugboats as a list of 1+ (tugboat_id, inbound_start_time) tuples meeting horsepower requirements via greedy/exhaustive search, and outbound_tugboats similarly for outbound service post-berthing; all times synchronized per service. If the vessel's P^req_i exceeds total_available_hp (80275) or no combo fits within H_max and availability, returns None, {}. Updated algorithm_data: empty dict {}.***
+
+Given the empty initial solution (all resources free), the heuristic should succeed in assigning the earliest vessel unless its individual requirements can't be met (e.g., P^req_i > sum(tugboat_horsepower) or incompatible with all berths), which is unlikely for the first assignment despite overall HP shortage. The partial_objective_value (110130.77) likely reflects the baseline unserved penalty (λ₁ * M * sum(α_i) for all 100 vessels), and post-assignment, it would decrease by the penalty saved minus added Z2/Z3/Z4 costs. The operator ensures validity per constraints, as helpers enforce them. In a smoke test, expect the operator to have non-empty tugboat lists with same start times per service.
+------------------------------------------------------------------------------------
+
+user
+In fact we run the earliest_arrival_first_eaf_4fe1 once, and now we got the output operation from earliest_arrival_first_eaf_4fe1:
+CompleteVesselAssignmentOperator(vessel_id=23, berth_id=0, start_time=2, inbound_tugboats=[(8, 1)], outbound_tugboats=[(8, 5)])
+
+The updated solution are
+Port Scheduling Solution:
+Vessel Assignments:
+  Vessel 0: Unassigned
+  Vessel 1: Unassigned
+  Vessel 2: Unassigned
+  Vessel 3: Unassigned
+  Vessel 4: Unassigned
+  Vessel 5: Unassigned
+  Vessel 6: Unassigned
+  Vessel 7: Unassigned
+  Vessel 8: Unassigned
+  Vessel 9: Unassigned
+  Vessel 10: Unassigned
+  Vessel 11: Unassigned
+  Vessel 12: Unassigned
+  Vessel 13: Unassigned
+  Vessel 14: Unassigned
+  Vessel 15: Unassigned
+  Vessel 16: Unassigned
+  Vessel 17: Unassigned
+  Vessel 18: Unassigned
+  Vessel 19: Unassigned
+  Vessel 20: Unassigned
+  Vessel 21: Unassigned
+  Vessel 22: Unassigned
+  Vessel 23: Berth 0, Start Time 2
+  Vessel 24: Unassigned
+  Vessel 25: Unassigned
+  Vessel 26: Unassigned
+  Vessel 27: Unassigned
+  Vessel 28: Unassigned
+  Vessel 29: Unassigned
+  Vessel 30: Unassigned
+  Vessel 31: Unassigned
+  Vessel 32: Unassigned
+  Vessel 33: Unassigned
+  Vessel 34: Unassigned
+  Vessel 35: Unassigned
+  Vessel 36: Unassigned
+  Vessel 37: Unassigned
+  Vessel 38: Unassigned
+  Vessel 39: Unassigned
+  Vessel 40: Unassigned
+  Vessel 41: Unassigned
+  Vessel 42: Unassigned
+  Vessel 43: Unassigned
+  Vessel 44: Unassigned
+  Vessel 45: Unassigned
+  Vessel 46: Unassigned
+  Vessel 47: Unassigned
+  Vessel 48: Unassigned
+  Vessel 49: Unassigned
+  Vessel 50: Unassigned
+  Vessel 51: Unassigned
+  Vessel 52: Unassigned
+  Vessel 53: Unassigned
+  Vessel 54: Unassigned
+  Vessel 55: Unassigned
+  Vessel 56: Unassigned
+  Vessel 57: Unassigned
+  Vessel 58: Unassigned
+  Vessel 59: Unassigned
+  Vessel 60: Unassigned
+  Vessel 61: Unassigned
+  Vessel 62: Unassigned
+  Vessel 63: Unassigned
+  Vessel 64: Unassigned
+  Vessel 65: Unassigned
+  Vessel 66: Unassigned
+  Vessel 67: Unassigned
+  Vessel 68: Unassigned
+  Vessel 69: Unassigned
+  Vessel 70: Unassigned
+  Vessel 71: Unassigned
+  Vessel 72: Unassigned
+  Vessel 73: Unassigned
+  Vessel 74: Unassigned
+  Vessel 75: Unassigned
+  Vessel 76: Unassigned
+  Vessel 77: Unassigned
+  Vessel 78: Unassigned
+  Vessel 79: Unassigned
+  Vessel 80: Unassigned
+  Vessel 81: Unassigned
+  Vessel 82: Unassigned
+  Vessel 83: Unassigned
+  Vessel 84: Unassigned
+  Vessel 85: Unassigned
+  Vessel 86: Unassigned
+  Vessel 87: Unassigned
+  Vessel 88: Unassigned
+  Vessel 89: Unassigned
+  Vessel 90: Unassigned
+  Vessel 91: Unassigned
+  Vessel 92: Unassigned
+  Vessel 93: Unassigned
+  Vessel 94: Unassigned
+  Vessel 95: Unassigned
+  Vessel 96: Unassigned
+  Vessel 97: Unassigned
+  Vessel 98: Unassigned
+  Vessel 99: Unassigned
+Inbound Tugboat Services:
+  Vessel 23: Tugboat 8 at time 1
+Outbound Tugboat Services:
+  Vessel 23: Tugboat 8 at time 5
+
+with related problem state
+assigned_vessels_fraction:0.01
+partial_objective_value:108883.87
+unassigned_vessels:99
+berth_utilization:0.01
+tug_utilization:0.00
+avg_eta_deviation_assigned:0.0
+remaining_hp_demand:343654.0
+schedule_progress:0.25
+full_service_completion_rate:0.01
+potential_conflict_ratio:0.0
+
+Please compare with your expected result: A CompleteVesselAssignmentOperator instance assigning the unassigned vessel with the smallest ETA (likely vessel ID 0 or the one with min(vessel_etas)) to a compatible berth (selected by earliest start_time and highest remaining capacity, which is full for all initially) at a start_time near that vessel's ETA (from find_feasible_assignments candidates, e.g., ETA or ETA±1), with inbound_tugboats as a list of 1+ (tugboat_id, inbound_start_time) tuples meeting horsepower requirements via greedy/exhaustive search, and outbound_tugboats similarly for outbound service post-berthing; all times synchronized per service. If the vessel's P^req_i exceeds total_available_hp (80275) or no combo fits within H_max and availability, returns None, {}. Updated algorithm_data: empty dict {}.
+1. If the result is aligned with your target output, respond to me ***python_code:correct*** and we will save the code and finish this generation.
+2. If the result is not aligned with your target output and you can not generate correct one, respond to me ***python_code:None*** and we will stop this generation.
+3. If the result is not aligned with your target output and you can fix up this issues, please respond to me in this format:
+***python_code:
+from src.problems.psp.components import *
+import other_library (if necessary)
+def earliest_arrival_first_eaf_4fe1(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[TargetOperatorType, dict]:
+    """ Description for this heuristic algorithm.
+
+    Args:
+        problem_state (dict): The dictionary contains the problem state.. In this algorithm, the following items are necessary:
+            - necessary_key (value type): description
+            - necessary_key (value type): description
+            ...
+        (Optional and can be omitted if no algorithm data) algorithm_data (dict): The algorithm dictionary for current algorithm only. In this algorithm, the following items are necessary:
+            - necessary_key (value type): description
+            - necessary_key (value type): description
+            ...
+        (Optional and can be omitted if no hyper parameters data) introduction for hyper parameters in kwargs if used.
+
+    Returns:
+        Description of this operator.
+        Description of updated algorithm data.
+
+        ...
+    """
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+
+------------------------------------------------------------------------------------
+
+assistant
+***python_code:correct***
+
+The output aligns well with the expected behavior: vessel 23 was selected as it has the smallest ETA in the test data (vessel IDs don't imply ETA order), assigned to berth 0 (first compatible, full capacity) at an early start_time=2 near its ETA (inbound at 1, tight sequencing to outbound at 5 post-berthing), using a single tugboat 8 (meets HP via greedy in find_tugboat_combination, available since empty solution). Times are synchronized per service, and stats updated correctly (e.g., cost decrease by ~1247, likely α_23 * (M - Z2-Z3-Z4 for this assignment), fraction 0.01). No issues; the "likely ID 0" was illustrative, not literal. The code's logic holds, ensuring validity per helpers.
+------------------------------------------------------------------------------------
+
+user
+To ensure the stable of heuristics, we adjust the code to:
+from src.problems.psp.components import *
+import numpy as np
+
+def earliest_arrival_first_eaf_4fe1(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[CompleteVesselAssignmentOperator, dict]:
+    """
+    Earliest Arrival First (EAF) heuristic: Selects the unassigned vessel with the smallest ETA and attempts to assign it to the earliest feasible berth-time slot within its time window, preferring berths with the highest remaining capacity (time_periods - current occupied duration). Uses find_feasible_assignments to generate candidate assignments and selects the best one based on earliest start_time and then highest remaining capacity. Returns a CompleteVesselAssignmentOperator for this assignment if feasible; otherwise, returns None if no unassigned vessels remain or no feasible assignment exists for the selected vessel. This enables step-by-step construction on partial solutions by iteratively assigning one vessel per heuristic call.
+
+    Hyperparameters (in kwargs, with defaults):
+    - max_candidates (int, default=5): Maximum number of candidate assignments to generate via find_feasible_assignments for the selected vessel. Higher values increase search thoroughness but computational cost.
+
+    Args:
+        problem_state (dict): The dictionary contains the problem state. In this algorithm, the following items are necessary:
+            - current_solution (Solution): Current partial solution to extend.
+            - total_scheduling_cost (float): Current total cost (used for tracking but not modified here).
+            - vessel_num (int): Total number of vessels.
+            - time_periods (int): Total scheduling horizon for remaining capacity calculation.
+            - vessel_etas (numpy.ndarray): ETAs for sorting unassigned vessels.
+            - vessel_durations (numpy.ndarray): Berthing durations for occupied time computation.
+            - vessel_sizes (numpy.ndarray): Vessel sizes for compatibility (used indirectly via helpers).
+            - berth_capacities (numpy.ndarray): Berth capacities for preference in ties (used if needed).
+            - get_unassigned_vessels (callable): To retrieve list of unassigned vessel IDs.
+            - find_feasible_assignments (callable): To generate feasible assignment candidates for the vessel.
+        algorithm_data (dict): Not used in this algorithm; returned as empty dict.
+        **kwargs: Hyperparameters as described above.
+
+    Returns:
+        CompleteVesselAssignmentOperator or None: Operator to assign the selected vessel if a feasible assignment is found; None otherwise (no action if all vessels assigned or no feasible slot).
+        dict: Empty dict as no algorithm data is updated by this heuristic.
+    """
+    # Extract necessary data from problem_state (never modify original)
+    current_solution = problem_state['current_solution']
+    vessel_etas = problem_state['vessel_etas']
+    vessel_durations = problem_state['vessel_durations']
+    time_periods = problem_state['time_periods']
+    get_unassigned_vessels_func = problem_state['get_unassigned_vessels']
+    find_feasible_assignments_func = problem_state['find_feasible_assignments']
+
+    # Hyperparameters with defaults
+    max_candidates = kwargs.get('max_candidates', 5)
+
+    # Step 1: Get and sort unassigned vessels by increasing ETA
+    unassigned_vessels = get_unassigned_vessels_func(current_solution)
+    if not unassigned_vessels:
+        # No unassigned vessels; no action needed
+        return None, {}
+
+    # Sort by ETA ascending; select the earliest one for this step (enables iterative calls)
+    sorted_unassigned = sorted(unassigned_vessels, key=lambda v: vessel_etas[v])
+    selected_vessel = sorted_unassigned[0]
+
+    # Step 2: Compute current occupied durations per berth for remaining capacity
+    # Initialize occupied array for each berth (0 to berth_num-1, but size from context)
+    # Assume berth_num from problem_state; use np.zeros for safety
+    berth_num = problem_state['berth_num']
+    occupied_durations = np.zeros(berth_num)
+    vessel_assignments = current_solution.vessel_assignments
+    for v_id, assignment in vessel_assignments.items():
+        if assignment is not None:
+            berth_id, _ = assignment
+            occupied_durations[berth_id] += vessel_durations[v_id]
+
+    remaining_capacities = time_periods - occupied_durations
+
+    # Step 3: Generate feasible assignment candidates for the selected vessel
+    candidates = find_feasible_assignments_func(selected_vessel, max_results=max_candidates, solution=current_solution)
+    if not candidates:
+        # No feasible assignment for this vessel; no action
+        return None, {}
+
+    # Step 4: Select the best candidate: earliest start_time, then highest remaining capacity
+    # Sort candidates: primary key start_time asc, secondary remaining[berth_id] desc
+    def sort_key(cand):
+        s_time = cand['start_time']
+        b_id = cand['berth_id']
+        rem_cap = remaining_capacities[b_id]
+        return (s_time, -rem_cap)  # Negative for descending remaining
+
+    best_candidate = min(candidates, key=sort_key)
+
+    # Step 5: Ensure the assignment is valid (redundant check via helper, but confirm non-empty tugboats)
+    inbound_tugs = best_candidate['inbound_tugboats']
+    outbound_tugs = best_candidate['outbound_tugboats']
+    if not inbound_tugs or not outbound_tugs:
+        return None, {}
+
+    # All tugboats for inbound/outbound must start at same time (as per operator validation)
+    inbound_times = [t for _, t in inbound_tugs]
+    outbound_times = [t for _, t in outbound_tugs]
+    if len(set(inbound_times)) > 1 or len(set(outbound_times)) > 1:
+        return None, {}
+
+    # Step 6: Create the operator for the best assignment
+    operator = CompleteVesselAssignmentOperator(
+        vessel_id=selected_vessel,
+        berth_id=best_candidate['berth_id'],
+        start_time=best_candidate['start_time'],
+        inbound_tugboats=inbound_tugs,
+        outbound_tugboats=outbound_tugs
+    )
+
+    # The operator will be applied externally; no direct modification here
+    # Costs are tracked via total_scheduling_cost update post-application
+    return operator, {}
+------------------------------------------------------------------------------------
+
