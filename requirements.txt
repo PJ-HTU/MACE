@@ -1,0 +1,25 @@
+# MACE Framework - Requirements
+
+# Python 3.8+ recommended
+
+# Core numerical and data processing
+numpy>=1.24.0
+pandas>=2.0.0
+
+# LLM API clients
+openai>=1.0.0
+anthropic>=0.18.0
+
+# Prompt engineering and LLM interaction
+langchain-core>=0.1.0
+
+# HTTP requests
+requests>=2.31.0
+
+# Optimization solver - CRITICAL for complementary selection
+gurobipy>=11.0.0
+
+# Code execution and parsing
+typing-extensions>=4.5.0
+
+# datetime, json, re, os, io, traceback are Python standard library
