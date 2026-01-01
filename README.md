@@ -200,9 +200,16 @@ Each problem requires the following implementations:
 
 **env.py**: Implements the `Env` class extending `BaseEnv`, handling data loading, solution validation, objective calculation, and result recording.
 
+**problem_state.py**: Defines state extraction functions (`get_instance_features()` and `get_solution_features()`) for representing problem and solution characteristics.
+
 **task_description.txt**: Text-based problem description used by LLMs to understand the problem domain.
 
-**data/**: Training, validation, and test instances organized by scale (small, medium, large).
+**prompt/**: Directory containing prompt templates for LLM interaction:
+- `problem_description.txt` - Detailed problem formulation and domain knowledge
+- `problem_state_description.txt` - Guidelines for state representation design
+- `special_remind.txt` - Important constraints and implementation notes
+
+**data/**: Training, smoke_test, and test instances organized by scale (small, medium, large).
 
 ---
 
@@ -244,7 +251,8 @@ Set up the directory structure under `src/problems/your_problem/`:
 - `components.py` - Define Solution and Operator classes
 - `env.py` - Implement environment for data loading and evaluation  
 - `task_description.txt` - Provide problem description for LLMs
-- `data/` - Organize training, validation, and test instances
+- `prompt/` - Create prompt templates (problem_description.txt, problem_state_description.txt, special_remind.txt)
+- `data/` - Organize training, smoke_test, and test instances
 
 ### Step 2: Implement Core Classes
 
