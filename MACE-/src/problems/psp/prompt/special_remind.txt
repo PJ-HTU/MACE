@@ -1,0 +1,3 @@
+1. Consider partial solution as input where some vessels may be unassigned.
+2. When calculating costs, consider all four components: unserved vessel penalties, port time costs, ETA deviation costs, and tugboat utilization costs.
+3. Make the result must be valid. 
