@@ -6,7 +6,7 @@
 
 MACE (Modular Algorithm Construction and Evolution) is a novel framework that leverages Large Language Models (LLMs) to autonomously discover heuristic algorithms for combinatorial optimization (CO) problems. The framework addresses two critical challenges: **generalization across diverse problem structures** and **adaptation to varying runtime constraints**.
 
-**📄 [![MACE Framework Architecture](./MACE%20Framework%20Architecture.png)**
+**📄![MACE Framework Architecture](./MACE%20Framework%20Architecture.png)**
 
 ## Key Features
 
