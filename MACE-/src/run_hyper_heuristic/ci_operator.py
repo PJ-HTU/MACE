@@ -1,10 +1,10 @@
 """
 CI Operator (Complementary Improvement Operator)
-对应MACE论文的CI算子 - Algorithm 2, line 3
+Corresponds to CI operator in MACE paper - Algorithm 2, line 3
 
-整合了:
-- prompt_cs.py 的提示词生成逻辑
-- complete_cs_workflow.py 的完整工作流
+Integrates:
+- Prompt generation logic from prompt_cs.py
+- Complete workflow from complete_cs_workflow.py
 """
 
 import os
@@ -15,12 +15,13 @@ from openai import OpenAI
 
 class CIOperator:
     """
-    CI (Complementary Improvement) 算子
+    CI (Complementary Improvement) Operator
     
-    论文公式(3): C(h_a, h_b) = min(W_ab, W_ba) / m
-    其中 W_ab = |{i : f_i(h_a) < f_i(h_b)}|
+    Paper Equation (3): C(h_a, h_b) = min(W_ab, W_ba) / m
+    where W_ab = |{i : f_i(h_a) < f_i(h_b)}|
     
-    选择具有互补优势的启发式对,生成融合策略的新启发式
+    Selects heuristic pairs with complementary advantages and generates new heuristics
+    that integrate their strategies.
     """
     
     def __init__(
@@ -33,13 +34,15 @@ class CIOperator:
         model: str
     ):
         """
+        Initialize CI Operator.
+        
         Args:
-            problem: 问题类型 (tsp, jssp, cvrp, psp)
-            heuristic_dir: 启发式代码目录
-            task_description_file: 任务描述文件路径
-            output_dir: 输出目录
-            api_key: LLM API密钥
-            model: LLM模型名称
+            problem: Problem type (tsp, jssp, cvrp, psp)
+            heuristic_dir: Heuristic code directory
+            task_description_file: Task description file path
+            output_dir: Output directory
+            api_key: LLM API key
+            model: LLM model name
         """
         self.problem = problem
         self.heuristic_dir = heuristic_dir
@@ -48,11 +51,10 @@ class CIOperator:
         self.api_key = api_key
         self.model = model
         
-        # 加载任务描述
         self.task_description = self._load_task_description()
     
     def _load_task_description(self) -> str:
-        """加载任务描述文件"""
+        """Load task description file."""
         if self.task_description_file and os.path.exists(self.task_description_file):
             with open(self.task_description_file, 'r', encoding='utf-8') as f:
                 return f.read()
@@ -60,82 +62,79 @@ class CIOperator:
     
     def generate(self, results_dict: Dict) -> Tuple[str, str]:
         """
-        执行CI算子完整工作流
+        Execute complete CI operator workflow.
         
         Args:
-            results_dict: 所有启发式的性能结果
-                格式: {heuristic_name: [score_1, score_2, ...]}
+            results_dict: Performance results of all heuristics
+                Format: {heuristic_name: [score_1, score_2, ...]}
         
         Returns:
-            (file_path, code): 生成的启发式文件路径和代码
+            (file_path, code): Generated heuristic file path and code
         """
         print("\n" + "=" * 80)
-        print("🔍 [CI算子] Complementary Improvement 开始")
+        print("🔍 [CI Operator] Complementary Improvement Started")
         print("=" * 80)
         
-        # Step 1: 选择互补对 (论文公式3)
+        # Step 1: Select complementary pair (Paper Equation 3)
         h1_name, h2_name = self._select_complementary_pair(results_dict)
-        print(f"✓ 选择的互补对: {h1_name} 和 {h2_name}")
+        print(f"✓ Selected complementary pair: {h1_name} and {h2_name}")
         
-        # Step 2: 加载启发式代码
+        # Step 2: Load heuristic code
         h1_code = self._load_heuristic_code(h1_name)
         h2_code = self._load_heuristic_code(h2_name)
         
-        # Step 3: 生成CI提示词
+        # Step 3: Generate CI prompt
         ci_prompt = self._create_ci_prompt(h1_name, h1_code, h2_name, h2_code)
         
-        # Step 4: 调用LLM生成新启发式
+        # Step 4: Call LLM to generate new heuristic
         llm_response = self._call_llm(ci_prompt)
         
-        # Step 5: 提取代码
+        # Step 5: Extract code
         extracted_code = self._extract_code_from_response(llm_response)
         
         if not extracted_code:
-            print("✗ 未能从响应中提取代码")
-            print("\n完整响应:")
+            print("✗ Failed to extract code from response")
+            print("\nFull response:")
             print(llm_response)
             return None, None
         
-        # Step 6: 保存代码
+        # Step 6: Save code
         try:
             file_path = self._save_generated_heuristic(extracted_code)
             
-            # 保存完整响应（包括思考过程）
             response_file = file_path.replace('.py', '_full_response.txt')
             with open(response_file, 'w', encoding='utf-8') as f:
                 f.write(f"Prompt used:\n{'-'*80}\n{ci_prompt}\n\n")
                 f.write(f"LLM Response:\n{'-'*80}\n{llm_response}")
             
-            print(f"✓ 代码已保存到: {file_path}")
+            print(f"✓ Code saved to: {file_path}")
             
         except Exception as e:
-            print(f"✗ 保存失败: {str(e)}")
+            print(f"✗ Save failed: {str(e)}")
             return None, extracted_code
         
-        # 完成
         print("\n" + "=" * 80)
-        print("✅ [CI算子] 工作流完成!")
+        print("✅ [CI Operator] Workflow Completed!")
         print("=" * 80)
-        print(f"📁 生成的启发式代码: {file_path}")
-        print(f"📄 完整响应记录: {response_file}")
-        print(f"🔬 基于互补对: {h1_name} + {h2_name}")
+        print(f"📁 Generated heuristic code: {file_path}")
+        print(f"📄 Full response log: {response_file}")
+        print(f"🔬 Based on complementary pair: {h1_name} + {h2_name}")
         print("=" * 80 + "\n")
         
         return file_path, extracted_code
     
     def _select_complementary_pair(self, results_dict: Dict) -> Tuple[str, str]:
         """
-        选择互补对 - 论文公式(3)
+        Select complementary pair - Paper Equation (3).
         
         C(h_a, h_b) = min(W_ab, W_ba) / m
-        其中 W_ab = |{i : f_i(h_a) < f_i(h_b)}|
+        where W_ab = |{i : f_i(h_a) < f_i(h_b)}|
         """
-        # 导入辅助函数
         from src.run_hyper_heuristic.helper_function import select_complementary_pair
         return select_complementary_pair(results_dict)
     
     def _load_heuristic_code(self, heuristic_name: str) -> str:
-        """加载启发式代码"""
+        """Load heuristic code."""
         from src.run_hyper_heuristic.helper_function import load_heuristic_code
         return load_heuristic_code(self.problem, heuristic_name, self.heuristic_dir)
     
@@ -146,9 +145,7 @@ class CIOperator:
         h2_name: str,
         h2_code: str
     ) -> str:
-        """
-        创建CI提示词
-        """
+        """Create CI prompt."""
         prompt_template = PromptTemplate(
             input_variables=[
                 "task_description",
@@ -208,7 +205,6 @@ The response format is very important. Please respond in this format:
 Please provide your new heuristic algorithm now:"""
         )
         
-        # 生成最终提示词
         final_prompt = prompt_template.format(
             task_description=self.task_description,
             heuristic1_name=h1_name,
@@ -220,10 +216,10 @@ Please provide your new heuristic algorithm now:"""
         return final_prompt
     
     def _call_llm(self, prompt: str) -> str:
-        """调用LLM生成代码"""
+        """Call LLM to generate code."""
         client = OpenAI(
             api_key=self.api_key,
-            base_url="https://openrouter.ai/api/v1"  # OpenAI SDK会自动添加/chat/completions
+            base_url="https://openrouter.ai/api/v1"
         )
         
         try:
@@ -246,21 +242,20 @@ Please provide your new heuristic algorithm now:"""
             return llm_response
             
         except Exception as e:
-            print(f"✗ API调用失败: {str(e)}")
+            print(f"✗ API call failed: {str(e)}")
             raise
     
     def _extract_code_from_response(self, response: str) -> str:
-        """从LLM响应中提取代码"""
+        """Extract code from LLM response."""
         from src.run_hyper_heuristic.helper_function import extract_code_from_response
         return extract_code_from_response(response)
     
     def _save_generated_heuristic(self, code: str) -> str:
-        """保存生成的启发式代码"""
+        """Save generated heuristic code."""
         from src.run_hyper_heuristic.helper_function import save_generated_heuristic
         return save_generated_heuristic(code, output_dir=self.output_dir)
 
 
-# 便捷函数 - 保持与原来complete_cs_workflow的兼容性
 def complete_cs_workflow(
     results_dict: Dict,
     api_key: str,
@@ -271,19 +266,19 @@ def complete_cs_workflow(
     model: str
 ) -> Tuple[str, str]:
     """
-    CI工作流 - 向后兼容的便捷函数
+    CI workflow - Backward compatible convenience function.
     
     Args:
-        results_dict: 所有启发式的性能结果
-        api_key: LLM API密钥
-        problem: 问题类型
-        heuristic_dir: 启发式目录
-        task_description_file: 任务描述文件路径
-        output_dir: 输出目录
-        model: LLM模型名称
+        results_dict: Performance results of all heuristics
+        api_key: LLM API key
+        problem: Problem type
+        heuristic_dir: Heuristic directory
+        task_description_file: Task description file path
+        output_dir: Output directory
+        model: LLM model name
     
     Returns:
-        (file_path, code): 生成的启发式文件路径和代码
+        (file_path, code): Generated heuristic file path and code
     """
     operator = CIOperator(
         problem=problem,

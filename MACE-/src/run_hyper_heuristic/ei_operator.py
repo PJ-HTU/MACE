@@ -1,10 +1,6 @@
 """
 EI Operator (Efficiency Improvement Operator)
-对应MACE论文的EI算子 - Algorithm 2, lines 7-9
-
-整合了:
-- prompt_ie.py 的提示词生成逻辑
-- improve_efficiency.py 的完整工作流
+Corresponds to EI operator in MACE paper - Algorithm 2, lines 7-9
 """
 
 import os
@@ -15,14 +11,14 @@ from openai import OpenAI
 
 class EIOperator:
     """
-    EI (Efficiency Improvement) 算子
+    EI (Efficiency Improvement) Operator
     
-    论文Algorithm 2, lines 7-9:
+    Paper Algorithm 2, lines 7-9:
     if t(h') > T_max then
         h' ← EI(LLM, p_ei, h')
     end if
     
-    当启发式超时时,减少计算复杂度,保持核心策略
+    When heuristic times out, reduce computational complexity while maintaining core strategy.
     """
     
     def __init__(
@@ -35,13 +31,15 @@ class EIOperator:
         model: str
     ):
         """
+        Initialize EI Operator.
+        
         Args:
-            problem: 问题类型 (tsp, jssp, cvrp, psp)
-            heuristic_dir: 启发式代码目录
-            task_description_file: 任务描述文件路径
-            output_dir: 输出目录
-            api_key: LLM API密钥
-            model: LLM模型名称
+            problem: Problem type (tsp, jssp, cvrp, psp)
+            heuristic_dir: Heuristic code directory
+            task_description_file: Task description file path
+            output_dir: Output directory
+            api_key: LLM API key
+            model: LLM model name
         """
         self.problem = problem
         self.heuristic_dir = heuristic_dir
@@ -50,11 +48,10 @@ class EIOperator:
         self.api_key = api_key
         self.model = model
         
-        # 加载任务描述
         self.task_description = self._load_task_description()
     
     def _load_task_description(self) -> str:
-        """加载任务描述文件"""
+        """Load task description file."""
         if self.task_description_file and os.path.exists(self.task_description_file):
             with open(self.task_description_file, 'r', encoding='utf-8') as f:
                 return f.read()
@@ -62,79 +59,72 @@ class EIOperator:
     
     def generate(self, heuristic_path: str) -> Tuple[str, str]:
         """
-        执行EI算子完整工作流
+        Execute complete EI operator workflow.
         
         Args:
-            heuristic_path: 需要优化的启发式文件路径
+            heuristic_path: Heuristic file path to optimize
         
         Returns:
-            (file_path, code): 生成的优化后启发式文件路径和代码
+            (file_path, code): Generated optimized heuristic file path and code
         """
         print("\n" + "=" * 80)
-        print("⚡ [EI算子] Efficiency Improvement 开始")
+        print("⚡ [EI Operator] Efficiency Improvement Started")
         print("=" * 80)
         
-        # Step 1: 加载启发式代码
         h_name = os.path.basename(heuristic_path)
         h_code = self._load_heuristic_code(heuristic_path)
-        print(f"✓ 目标启发式: {h_name}")
-        print(f"  原因: 超时 (t(h') > T_max)")
+        print(f"✓ Target heuristic: {h_name}")
+        print(f"  Reason: Timeout (t(h') > T_max)")
         
-        # Step 2: 生成EI提示词
         ei_prompt = self._create_ei_prompt(h_name, h_code)
         
-        # Step 3: 调用LLM生成优化后的启发式
         llm_response = self._call_llm(ei_prompt)
         
-        # Step 4: 提取代码
         extracted_code = self._extract_code_from_response(llm_response)
         
         if not extracted_code:
-            print("✗ 未能从响应中提取代码")
-            print("\n完整响应:")
+            print("✗ Failed to extract code from response")
+            print("\nFull response:")
             print(llm_response)
             return None, None
         
-        # Step 5: 保存代码
         try:
             file_path = self._save_generated_heuristic(extracted_code)
             
-            # 保存完整响应（包括思考过程）
             response_file = file_path.replace('.py', '_full_response.txt')
             with open(response_file, 'w', encoding='utf-8') as f:
                 f.write(f"Prompt used:\n{'-'*80}\n{ei_prompt}\n\n")
                 f.write(f"LLM Response:\n{'-'*80}\n{llm_response}")
             
-            print(f"✓ 代码已保存到: {file_path}")
+            print(f"✓ Code saved to: {file_path}")
             
         except Exception as e:
-            print(f"✗ 保存失败: {str(e)}")
+            print(f"✗ Save failed: {str(e)}")
             return None, extracted_code
         
-        # 完成
         print("\n" + "=" * 80)
-        print("✅ [EI算子] 工作流完成!")
+        print("✅ [EI Operator] Workflow Completed!")
         print("=" * 80)
-        print(f"📁 生成的优化启发式: {file_path}")
-        print(f"📄 完整响应记录: {response_file}")
-        print(f"🔬 基于原始启发式: {h_name}")
+        print(f"📁 Generated optimized heuristic: {file_path}")
+        print(f"📄 Full response log: {response_file}")
+        print(f"🔬 Based on original heuristic: {h_name}")
         print("=" * 80 + "\n")
         
         return file_path, extracted_code
     
     def _load_heuristic_code(self, heuristic_path: str) -> str:
-        """加载启发式代码"""
+        """Load heuristic code."""
         try:
             with open(heuristic_path, 'r', encoding='utf-8') as f:
                 return f.read()
         except Exception as e:
-            print(f"✗ 读取启发式代码失败: {e}")
+            print(f"✗ Failed to read heuristic code: {e}")
             return ""
     
     def _create_ei_prompt(self, h_name: str, h_code: str) -> str:
         """
-        创建EI提示词
-        目标: 减少计算复杂度,保持核心策略
+        Create EI prompt.
+        Goal: Reduce computational complexity while maintaining core strategy.
         """
         prompt_template = PromptTemplate(
             input_variables=[
@@ -213,7 +203,6 @@ The response format is very important. Please respond in this format:
 Please provide your optimized heuristic algorithm now:"""
         )
         
-        # 生成最终提示词
         final_prompt = prompt_template.format(
             task_description=self.task_description,
             h_name=h_name,
@@ -223,10 +212,10 @@ Please provide your optimized heuristic algorithm now:"""
         return final_prompt
     
     def _call_llm(self, prompt: str) -> str:
-        """调用LLM生成代码"""
+        """Call LLM to generate code."""
         client = OpenAI(
             api_key=self.api_key,
-            base_url="https://openrouter.ai/api/v1"  # OpenAI SDK会自动添加/chat/completions
+            base_url="https://openrouter.ai/api/v1"
         )
         
         try:
@@ -249,21 +238,20 @@ Please provide your optimized heuristic algorithm now:"""
             return llm_response
             
         except Exception as e:
-            print(f"✗ API调用失败: {str(e)}")
+            print(f"✗ API call failed: {str(e)}")
             raise
     
     def _extract_code_from_response(self, response: str) -> str:
-        """从LLM响应中提取代码"""
+        """Extract code from LLM response."""
         from src.run_hyper_heuristic.helper_function import extract_code_from_response
         return extract_code_from_response(response)
     
     def _save_generated_heuristic(self, code: str) -> str:
-        """保存生成的启发式代码"""
+        """Save generated heuristic code."""
         from src.run_hyper_heuristic.helper_function import save_generated_heuristic
         return save_generated_heuristic(code, output_dir=self.output_dir)
 
 
-# 便捷函数 - 保持与原来improve_efficiency的兼容性
 def improve_efficiency(
     file_path: str,
     api_key: str,
@@ -274,19 +262,19 @@ def improve_efficiency(
     model: str
 ) -> Tuple[str, str]:
     """
-    EI工作流 - 向后兼容的便捷函数
+    EI workflow - Backward compatible convenience function.
     
     Args:
-        file_path: 需要优化的启发式文件路径
-        api_key: LLM API密钥
-        problem: 问题类型
-        heuristic_dir: 启发式目录
-        task_description_file: 任务描述文件路径
-        output_dir: 输出目录
-        model: LLM模型名称
+        file_path: Heuristic file path to optimize
+        api_key: LLM API key
+        problem: Problem type
+        heuristic_dir: Heuristic directory
+        task_description_file: Task description file path
+        output_dir: Output directory
+        model: LLM model name
     
     Returns:
-        (file_path, code): 生成的优化后启发式文件路径和代码
+        (file_path, code): Generated optimized heuristic file path and code
     """
     operator = EIOperator(
         problem=problem,
