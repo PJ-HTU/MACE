@@ -158,14 +158,14 @@ class Env(BaseEnv):
         
     def helper_function(self) -> dict:
         """
-        返回所有辅助函数的字典,供启发式算法调用.
-        
+        Return a dictionary of helper functions for heuristic algorithms.
+    
         Returns:
-            dict: 函数名到函数引用的映射
-            
+            dict: Mapping from function names to function references
+    
         Example:
             helpers = env.helper_function()
-            unvisited = helpers['get_unvisited_customers']()
+            unvisited = helpers["get_unvisited_customers"]()
         """
         return {
             # Core validation and state
