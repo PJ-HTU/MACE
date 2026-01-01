@@ -1,0 +1,375 @@
+user
+I am working on Hyper-heuristics for Combinatorial Operation (CO) problem.
+
+Currently, I am working on cvrp problem:
+Capacitated Vehicle Routing Problem (CVRP) is an optimization challenge focused on determining the most efficient routes for a fleet of vehicles to deliver goods to various locations, considering vehicle capacity constraints.
+
+
+Please consider is cvrp a combinatorial operation problem and can be solved by heuristics?
+If you think this problem is not a combinatorial operation problem or the solution, operator, data are incorrect, response ***is_cop:no*** to me, or response ***is_cop:yes***.
+
+The response format is very important. For better communication, please respond to me in this format:
+***is_cop:yes/no***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***is_cop:yes***
+
+Yes, the Capacitated Vehicle Routing Problem (CVRP) is indeed a combinatorial optimization (CO) problem. It involves discrete decision-making, such as selecting routes and assignments for vehicles from a finite set of possibilities, while optimizing objectives like total distance or cost under constraints like capacity limits. CVRP is NP-hard, making exact solutions computationally intensive for large instances, so heuristics (e.g., nearest neighbor, Clarke-Wright savings algorithm, genetic algorithms, or tabu search) and metaheuristics are widely used and effective for solving it in practice. Hyper-heuristics, which select or generate heuristics at a higher level, are also a promising approach for tackling CVRP variations. If your work involves specific operators, data, or solution representations, feel free to share more details for further discussion!
+------------------------------------------------------------------------------------
+
+user
+We aim to collaboratively create the functions to generate some problem states(statistics data), which captures the high-level features of problem instance for the cvrp. 
+
+These functions will be underpinned by rigorous statistical analysis and domain-specific knowledge, ensuring they are both accurate and relevant.
+
+
+In determining the optimal problem states to represent instance, we must adhere to the following criteria:
+1. The data representation should be succinct to minimize computational load while retaining sufficient granularity to recognize the feature of the problem and solution.
+2. It must incorporate unique attributes that aid in the clear distinction between different instances.
+3. The most important, these data only focus on instance and has nothing to do with solution.
+
+Now, please tell me which statistical data are best serve as instance problem state.
+
+The response format is very important. For better communication, please respond to me in this format:
+***instance_problem_state:
+problem_state_name;how_to_calculate;reason
+problem_state_name;how_to_calculate;reason
+....
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***instance_problem_state:
+num_customers;count the total number of customer nodes (excluding depot);Provides a basic measure of problem scale, essential for distinguishing small vs. large instances without computational overhead.
+total_demand;sum of all customer demands;Captures the overall delivery volume, helping differentiate instances with light vs. heavy loads relative to capacity.
+demand_cv;standard deviation of customer demands divided by their mean (coefficient of variation);Quantifies demand variability, allowing distinction between uniform and skewed demand distributions, which impacts route feasibility.
+avg_depot_distance;average Euclidean distance from depot to all customer locations;Indicates spatial extent from the starting point, useful for separating clustered (low value) vs. dispersed (high value) geographic layouts.
+spatial_clustering;average distance between each customer and its nearest neighbor, then averaged over all customers;Measures local density, enabling differentiation of clustered vs. uniformly spread customer distributions.
+capacity_to_total_demand_ratio;vehicle capacity divided by total demand (or by total demand divided by a fixed fleet size if specified in instance);Highlights relative tightness of capacity constraints, distinguishing easy (high ratio) vs. tight (low ratio) instances without referencing solutions.
+***
+
+These suggested problem states are derived from standard CVRP instance characteristics (locations, demands, and capacity) and are commonly used in empirical analyses and hyper-heuristic frameworks for VRP to abstract instance features. They are computationally efficient (O(n) or O(n log n) at worst for distances) and focus solely on the input data, avoiding any solution-dependent metrics like route lengths. For spatial features, assuming Euclidean distances based on coordinates, which is typical in benchmark instances like Solomon or Christofides. If your instances include specific formats (e.g., TSPLIB), these can be adapted; let me know for refinements or code snippets to compute them!
+------------------------------------------------------------------------------------
+
+user
+Try to implement the get_instance_problem_state function in python:
+def get_instance_problem_state(instance_data: dict) -> dict:
+
+The input is instance_data
+- node_num (int): The total number of nodes in the problem.
+    - distance_matrix (numpy.ndarray): A 2D array representing the distances between nodes.
+    - vehicle_num (int): The total number of vehicles.
+    - capacity (int): The capacity for each vehicle and all vehicles share the same value.
+    - depot (int): The index for depot node.
+    - demands (numpy.ndarray): The demand of each node.
+
+The output is algo a dict, which contains the following problem states as keys: num_customers,total_demand,demand_cv,avg_depot_distance,spatial_clustering,capacity_to_total_demand_ratio.
+
+Please note:
+1. Never modify the instance_data.
+2. The name of function must be get_instance_problem_state.
+3. No any omissions or placeholders, I'm just going to use the code.
+4. Comments in the code are very important.
+
+
+The response format is very important. For better communication, please respond to me in this format:
+***python_code:
+import library (if necessary)
+def get_instance_problem_state(instance_data: dict) -> dict:
+    """Extract instance problem state from instance data.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+
+    Returns:
+        dict: The dictionary contains the instance problem state with:
+            - problem_state_name (type): description
+            - problem_state_name (type): description
+            ...
+    """
+    ...
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***python_code:
+import numpy as np
+
+def get_instance_problem_state(instance_data: dict) -> dict:
+    """Extract instance problem state from instance data.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+
+    Returns:
+        dict: The dictionary contains the instance problem state with:
+            - num_customers (int): The number of customer nodes excluding the depot.
+            - total_demand (float): The sum of demands for all customer nodes.
+            - demand_cv (float): The coefficient of variation of customer demands (std/mean).
+            - avg_depot_distance (float): The average distance from depot to all customers.
+            - spatial_clustering (float): The average of minimum distances between each customer and its nearest neighbor customer.
+            - capacity_to_total_demand_ratio (float): The ratio of total vehicle capacity (capacity * vehicle_num) to total demand.
+    """
+    # Extract data from instance_data without modification
+    node_num = instance_data['node_num']
+    distance_matrix = instance_data['distance_matrix']
+    vehicle_num = instance_data['vehicle_num']
+    capacity = instance_data['capacity']
+    depot = instance_data['depot']
+    demands = instance_data['demands']
+    
+    # Assume depot index is provided, and customers are all other nodes (0 to node_num-1 excluding depot)
+    # Typically depot demand is 0, so sum all demands but exclude depot for customer-specific metrics
+    customer_indices = np.arange(node_num)
+    customer_indices = customer_indices[customer_indices != depot]  # Exclude depot
+    num_customers = len(customer_indices)
+    
+    # Total demand: sum of customer demands only
+    customer_demands = demands[customer_indices]
+    total_demand = np.sum(customer_demands)
+    
+    # Demand CV: coefficient of variation for customer demands (exclude depot)
+    if num_customers > 0:
+        demand_mean = np.mean(customer_demands)
+        demand_std = np.std(customer_demands)
+        demand_cv = demand_std / demand_mean if demand_mean > 0 else 0.0
+    else:
+        demand_cv = 0.0
+    
+    # Average depot distance: mean distance from depot to customers
+    depot_to_customers = distance_matrix[depot, customer_indices]
+    avg_depot_distance = np.mean(depot_to_customers) if num_customers > 0 else 0.0
+    
+    # Spatial clustering: average min distance to nearest neighbor for each customer (only among customers)
+    spatial_clustering = 0.0
+    if num_customers > 1:
+        min_dists = []
+        for i in customer_indices:
+            # Distances from i to other customers (exclude depot and self)
+            dists_to_others = distance_matrix[i, customer_indices]
+            dists_to_others[i == customer_indices] = np.inf  # Exclude self
+            min_dist = np.min(dists_to_others)
+            min_dists.append(min_dist)
+        spatial_clustering = np.mean(min_dists)
+    
+    # Capacity to total demand ratio: total capacity / total demand
+    total_capacity = capacity * vehicle_num
+    capacity_to_total_demand_ratio = total_capacity / total_demand if total_demand > 0 else float('inf')
+    
+    # Return the problem state dictionary
+    return {
+        'num_customers': num_customers,
+        'total_demand': total_demand,
+        'demand_cv': demand_cv,
+        'avg_depot_distance': avg_depot_distance,
+        'spatial_clustering': spatial_clustering,
+        'capacity_to_total_demand_ratio': capacity_to_total_demand_ratio
+    }
+***
+
+This implementation assumes the distance_matrix is symmetric and uses Euclidean or precomputed distances as provided. It handles edge cases like no customers (though unlikely for CVRP) by setting sensible defaults (e.g., 0 or inf). Customer indices are dynamically computed to exclude the depot, making it flexible if depot isn't at index 0. Computations are efficient: O(n) for most, O(n^2) for spatial_clustering (acceptable for typical CVRP sizes <1000 nodes). If your instances have depot demand non-zero or specific indexing, minor tweaks might be needed, but this should integrate directly. Test with sample data to verify!
+------------------------------------------------------------------------------------
+
+user
+Now, we aim to collaboratively create the functions to generate some problem states(statistics data), which captures the high-level features of current (partial) solution for the cvrp.
+
+These functions will be underpinned by rigorous statistical analysis and domain-specific knowledge, ensuring they are both accurate and relevant.
+
+
+In determining the optimal problem states to represent instance, we must adhere to the following criteria:
+1. The data representation should be succinct to minimize computational load while retaining sufficient granularity to recognize the solution feature.
+2. It must incorporate unique attributes that aid in the clear distinction between different solution stage.
+3. We need to evaluate the current status from multiple dimensions, including the current progress of the solution, the quality of the solution, the status of the remaining data, etc.
+4. The most important, these data relates to both instance and current solution, and will update during the problem solving process.
+
+Now, please tell me which statistical data are best serve as solution problem state.
+
+The response format is very important. For better communication, please respond to me in this format:
+***solution_problem_state:
+problem_state_name;how_to_calculate;reason
+problem_state_name;how_to_calculate;reason
+....
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***solution_problem_state:
+served_customers_ratio;(number of served customers) / total number of customers;Quantifies solution progress by coverage percentage, distinguishing early (low ratio) from advanced (high ratio) stages succinctly.
+total_traveled_distance;sum of distances for all complete routes plus distances in partial (active) routes;Captures accumulated solution quality/cost, allowing differentiation of efficient vs. inefficient partial builds without full recomputation.
+vehicles_used;number of complete routes + number of active (partial) routes;Measures resource utilization progress, highlighting stages where fleet commitment is low (exploration) vs. high (commitment).
+avg_load_utilization;average of (current load / capacity) across all active and complete routes, weighted by route length if needed;Evaluates packing efficiency in the partial solution, distinguishing well-utilized (high) from wasteful (low) load states for quality assessment.
+remaining_demand_ratio;total demand of unserved customers / total customer demand;Indicates remaining workload intensity, aiding distinction between demand-heavy early stages and near-complete phases.
+unserved_spatial_clustering;average minimum distance to nearest unserved neighbor among unserved customers;Assesses the spatial challenge of leftovers, differentiating clustered (easier to route) vs. dispersed (harder) remaining instances for strategic decisions.
+num_unserved_customers;total number of unserved customers;Provides a direct count of progress gap, succinct for tracking solution advancement and remaining combinatorial complexity.
+***
+
+These solution problem states build on the instance features previously defined, assuming access to partial solution data like route lists (with nodes, loads, distances), served/unserved sets, and integration with instance_data (e.g., demands, distances). They are designed for dynamic updates during heuristics (e.g., after adding a customer to a route), with low overhead (O(1) updates if incrementally maintained, O(m) for spatial where m is unserved count). Dimensions covered: progress (served/remaining ratios), quality (distance/load), and remaining status (unserved metrics). In CVRP hyper-heuristics, such states are useful for selecting operators (e.g., favor insertions if unserved clustering is low). If your solution representation differs (e.g., specific route data structure), these calculations can be adapted—share details for refinements!
+------------------------------------------------------------------------------------
+
+user
+Try to implement the get_solution_problem_state function in python:
+def get_solution_problem_state(instance_data: dict, solution: Solution) -> dict:
+
+The input is instance_data:
+- node_num (int): The total number of nodes in the problem.
+    - distance_matrix (numpy.ndarray): A 2D array representing the distances between nodes.
+    - vehicle_num (int): The total number of vehicles.
+    - capacity (int): The capacity for each vehicle and all vehicles share the same value.
+    - depot (int): The index for depot node.
+    - demands (numpy.ndarray): The demand of each node.
+The format of solution is already defined as:
+class Solution:
+    """The solution of CVRP.
+A list of lists where each sublist represents a vehicle's route.
+Each sublist contains integers representing the nodes (customers) visited by the vehicle in the order of visitation.
+The routes are sorted by vehicle identifier and the nodes in the list sorted by visited order."""
+    def __init__(self, routes: list[list[int]], depot: int):
+        self.routes = routes
+        self.depot = depot
+
+The output is algo a dict, which contains the following problem states as keys: served_customers_ratio,total_traveled_distance,vehicles_used,avg_load_utilization,remaining_demand_ratio,unserved_spatial_clustering,num_unserved_customers.
+
+Please note:
+1. Never modify the instance_data and solution.
+2. The name of function must be get_solution_problem_state.
+3. No any omissions or placeholders, I'm just going to use the code.
+4. Comments in the code are very important.
+5. The solution is already defined, do not implement it again.
+
+The response format is very important. For better communication, please respond to me in this format:
+***python_code:
+import library (if necessary)
+def get_solution_problem_state(instance_data: dict, solution: Solution) -> dict:
+    """Extract instance problem state from instance data.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+        solution (Solution): The target solution instance.
+    Returns:
+        dict: The dictionary contains the instance problem state with:
+            - problem_state_name (type): description
+            - problem_state_name (type): description
+            ...
+    """
+    ...
+***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***python_code:
+import numpy as np
+
+def get_solution_problem_state(instance_data: dict, solution: Solution) -> dict:
+    """Extract solution problem state from instance data and partial solution.
+
+    Args:
+        instance_data (dict): The dictionary contains the instance data.
+        solution (Solution): The target solution instance.
+
+    Returns:
+        dict: The dictionary contains the solution problem state with:
+            - served_customers_ratio (float): Ratio of served customers to total customers.
+            - total_traveled_distance (float): Total distance traveled in all routes (including partial).
+            - vehicles_used (int): Number of non-empty routes (active or complete).
+            - avg_load_utilization (float): Average load utilization across used routes.
+            - remaining_demand_ratio (float): Ratio of remaining demand to total customer demand.
+            - unserved_spatial_clustering (float): Average minimum distance between unserved customers.
+            - num_unserved_customers (int): Number of unserved customers.
+    """
+    # Extract data from instance_data without modification
+    node_num = instance_data['node_num']
+    distance_matrix = instance_data['distance_matrix']
+    vehicle_num = instance_data['vehicle_num']
+    capacity = instance_data['capacity']
+    depot = instance_data['depot']
+    demands = instance_data['demands']
+    
+    # Extract solution data without modification
+    routes = solution.routes
+    sol_depot = solution.depot  # Should match instance depot, but use for consistency
+    
+    # Determine customer indices: all nodes except depot
+    customer_indices = np.arange(node_num)
+    customer_indices = customer_indices[customer_indices != depot]
+    total_customers = len(customer_indices)
+    total_customer_demand = np.sum(demands[customer_indices])
+    
+    # Find served customers: unique customers across all routes
+    served_customers = set()
+    for route in routes:
+        served_customers.update(route)
+    num_served = len(served_customers)
+    served_customers_ratio = num_served / total_customers if total_customers > 0 else 0.0
+    
+    # Unserved customers: customers not in served set
+    all_customers_set = set(customer_indices)
+    unserved_customers = list(all_customers_set - served_customers)
+    num_unserved_customers = len(unserved_customers)
+    
+    # Remaining demand: sum of demands for unserved customers
+    remaining_demand = np.sum(demands[unserved_customers]) if unserved_customers else 0.0
+    remaining_demand_ratio = remaining_demand / total_customer_demand if total_customer_demand > 0 else 0.0
+    
+    # Vehicles used: count non-empty routes
+    vehicles_used = sum(1 for route in routes if route)  # Non-empty routes are used
+    
+    # Total traveled distance: for each route, compute depot -> route -> depot distance
+    total_traveled_distance = 0.0
+    for route in routes:
+        if not route:
+            continue  # Empty route contributes 0
+        # Full route: depot -> first -> ... -> last -> depot
+        route_dist = distance_matrix[sol_depot, route[0]]  # depot to first
+        for i in range(len(route) - 1):
+            route_dist += distance_matrix[route[i], route[i + 1]]  # consecutive
+        route_dist += distance_matrix[route[-1], sol_depot]  # last to depot
+        total_traveled_distance += route_dist
+    
+    # Average load utilization: for each non-empty route, load / capacity, then average
+    load_utilizations = []
+    for route in routes:
+        if not route:
+            continue
+        route_load = np.sum(demands[route])
+        load_util = route_load / capacity if capacity > 0 else 0.0
+        load_utilizations.append(load_util)
+    avg_load_utilization = np.mean(load_utilizations) if load_utilizations else 0.0
+    
+    # Unserved spatial clustering: average min distance to nearest unserved neighbor
+    unserved_spatial_clustering = 0.0
+    if len(unserved_customers) > 1:
+        min_dists = []
+        for i in unserved_customers:
+            # Distances to other unserved (exclude self)
+            dists_to_others = distance_matrix[i, unserved_customers]
+            dists_to_others[unserved_customers.index(i)] = np.inf  # Exclude self
+            min_dist = np.min(dists_to_others)
+            min_dists.append(min_dist)
+        unserved_spatial_clustering = np.mean(min_dists)
+    
+    # Return the solution problem state dictionary
+    return {
+        'served_customers_ratio': served_customers_ratio,
+        'total_traveled_distance': total_traveled_distance,
+        'vehicles_used': vehicles_used,
+        'avg_load_utilization': avg_load_utilization,
+        'remaining_demand_ratio': remaining_demand_ratio,
+        'unserved_spatial_clustering': unserved_spatial_clustering,
+        'num_unserved_customers': num_unserved_customers
+    }
+***
+
+This implementation treats the solution as partial by considering only the customers in the routes as served, with distances computed for full round-trip routes (depot-inclusive, even if partial). It assumes routes contain only customer indices (no depot in lists), no duplicates across routes, and symmetric distance_matrix. Edge cases are handled: empty solution (all ratios 0, distances 0), no unserved (clustering 0), zero capacity/demand (avoids division by zero). Computations are efficient: O(total_customers + sum route lengths + O(u^2) for unserved clustering, where u is unserved count). For full solutions, unserved metrics will be 0. If your partial solutions include open routes or different conventions (e.g., partial without closing to depot), the distance calculation can be adjusted—let me know for tweaks!
+------------------------------------------------------------------------------------
+

@@ -1,0 +1,578 @@
+user
+I am working on Hyper-heuristics for Combinatorial Operation (CO) problem.
+
+Currently, I am working on cvrp problem:
+Capacitated Vehicle Routing Problem (CVRP) is an optimization challenge focused on determining the most efficient routes for a fleet of vehicles to deliver goods to various locations, considering vehicle capacity constraints.
+
+To support different heuristic algorithms, I build the Solution and Operator framework.
+The Solution is designed as:
+class Solution:
+    """The solution of CVRP.
+A list of lists where each sublist represents a vehicle's route.
+Each sublist contains integers representing the nodes (customers) visited by the vehicle in the order of visitation.
+The routes are sorted by vehicle identifier and the nodes in the list sorted by visited order."""
+    def __init__(self, routes: list[list[int]], depot: int):
+        self.routes = routes
+        self.depot = depot
+Operator servers as a mechanism to modify solution, which enables the application of heuristic algorithms. 
+To support heuristic algorithm, we have build the following operators:
+class AppendOperator(BaseOperator):
+    """Append a node at the end of the specified vehicle's route."""
+    def __init__(self, vehicle_id: int, node: int):
+        self.vehicle_id = vehicle_id
+        self.node = node
+    def run(self, solution: Solution) -> Solution:
+        new_routes = [route[:] for route in solution.routes]
+        new_routes[self.vehicle_id].append(self.node)
+        return Solution(new_routes, solution.depot)
+class InsertOperator(BaseOperator):
+    """Insert a node at a specified position within the route of a specified vehicle."""
+    def __init__(self, vehicle_id: int, node: int, position: int):
+        self.vehicle_id = vehicle_id
+        self.node = node
+        self.position = position
+    def run(self, solution: Solution) -> Solution:
+        new_routes = [route[:] for route in solution.routes]
+        new_routes[self.vehicle_id].insert(self.position, self.node)
+        return Solution(new_routes, solution.depot)
+
+In pursuit of augmenting our heuristic algorithmic suite, we require the following standardized heuristic function signature:
+def heuristic(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[TargetOperatorType, dict]:
+The inputs are:
+problem_state (dict): A dictionary containing the problem state information, organized into five categories of keys:
+1. Input Data:
+    - node_num (int): The total number of nodes in the problem.
+    - distance_matrix (numpy.ndarray): A 2D array representing the distances between nodes.
+    - vehicle_num (int): The total number of vehicles.
+    - capacity (int): The capacity for each vehicle and all vehicles share the same value.
+    - depot (int): The index for depot node.
+    - demands (numpy.ndarray): The demand of each node.
+2. Current Solution:
+    - current_solution (Solution): Current solution instance.
+    - total_current_cost (int): The total cost of the current solution for all vehicles.
+3. Helper Functions (these Functions may help you to generation the following heuristic):
+    - get_problem_state (callable): def get_problem_state(solution: Solution) -> dict: The function to get the complete problem state for given solution without modifying it. Returns a dictionary containing 'total_scheduling_cost' and other state information.
+    - validation_solution (callable): def validation_solution(solution: Solution = None) -> bool: The function to check whether the solution is valid according to all mathematical model constraints. If solution is None, checks current solution. Returns True if valid, False otherwise.
+    - get_unvisited_customers (callable): def get_unvisited_customers(solution: Solution = None) -> list[int]: Get list of customer node IDs that have not been visited in any route. Excludes depot from the result. If solution is None, uses current solution. Returns list of integers representing unvisited customer IDs.
+    - get_route_load (callable): def get_route_load(vehicle_id: int, solution: Solution = None) -> float: Calculate the total demand of all customers in a specific vehicle's route. Excludes depot demand from calculation (only counts customer nodes). If solution is None, uses current solution. Returns float representing the total load of the route.
+    - can_add_to_route (callable): def can_add_to_route(vehicle_id: int, customer: int, solution: Solution = None) -> bool: Check if a customer can be added to a vehicle's route without violating capacity constraint. Considers current route load plus customer demand versus vehicle capacity. If solution is None, uses current solution. Returns True if the customer can be added without exceeding capacity, False otherwise.
+4. Instance Statistics (these Instance Statistics may help you to generation the following heuristic):
+    - num_customers (int): The number of customer nodes excluding the depot.
+    - total_demand (float): The sum of demands for all customer nodes.
+    - demand_cv (float): The coefficient of variation of customer demands (std/mean).
+    - avg_depot_distance (float): The average distance from depot to all customers.
+    - spatial_clustering (float): The average of minimum distances between each customer and its nearest neighbor customer.
+    - capacity_to_total_demand_ratio (float): The ratio of total vehicle capacity (capacity * vehicle_num) to total demand.
+5. Current Solution Statistics (these Solution Statistics may help you to generation the following heuristic):
+    - served_customers_ratio (float): Ratio of served customers to total customers.
+    - total_traveled_distance (float): Total distance traveled in all routes (including partial).
+    - vehicles_used (int): Number of non-empty routes (active or complete).
+    - avg_load_utilization (float): Average load utilization across used routes.
+    - remaining_demand_ratio (float): Ratio of remaining demand to total customer demand.
+    - unserved_spatial_clustering (float): Average minimum distance between unserved customers.
+    - num_unserved_customers (int): Number of unserved customers.
+algorithm_data(dict): Algorithm data contains the data that necessary for some algorithms.
+Other hyper-parameters in kwargs.
+The outputs includes the operator that must be an instance of a predefined target operator type and updated algorithm dict, which contains new information for future work for both this or other algorithm.
+
+Please consider is cvrp a combinatorial operation problem and can be solved by heuristics?
+If you think this problem is not a combinatorial operation problem or the solution, operator, data are incorrect, response ***is_cop:no*** to me, or response ***is_cop:yes***.
+
+The response format is very important. For better communication, please respond to me in this format:
+***is_cop:yes/no***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***is_cop:yes***
+
+CVRP is indeed a classic combinatorial optimization (CO) problem, as it involves discrete decision-making over a finite set of possible routes and assignments while optimizing objectives like total distance or cost, subject to constraints like vehicle capacity and customer demands. It's NP-hard, making exact solutions impractical for large instances, so heuristics (e.g., local search, genetic algorithms) and meta-heuristics (e.g., tabu search, simulated annealing) are standard approaches. Your Solution class and operators (AppendOperator, InsertOperator) align well with representing and perturbing CVRP solutions, enabling hyper-heuristic frameworks to select or generate improvements. The provided problem_state dict structure, with categories for input data, current solution, helpers, and statistics, supports effective heuristic design by providing necessary context for operator selection. If you're building hyper-heuristics, consider incorporating operators like relocate, exchange, or 2-opt for richer neighborhood exploration in CVRP.
+------------------------------------------------------------------------------------
+
+user
+I need your help to design different 5 basic heuristics for the cvrp problem.
+
+## Heuristic Requirements:
+1. **Constructive Nature**: Each heuristic must be constructive (or constructive followed by improvement), and build solutions step-by-step from scratch.
+
+2. **Diversity**: The 5 heuristics should represent different strategies to ensure diversity in solution approaches.
+
+The problem will work on following data.
+Please try to understand the data and generate based on them, especially setting the default value for hyper-parameters:
+All data is possible
+
+The response format is very important. For better communication, please respond to me in this format:
+***heuristic:
+heuristic_name: only text description
+heuristic_name: only text description
+....
+***
+Ensure there is no other content (including blank lines) inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***heuristic:
+Nearest Neighbor Heuristic: Start with empty routes for each vehicle. For each vehicle in sequence, repeatedly append the nearest unvisited customer (by distance from the last node in the route) that fits the remaining capacity until no more can be added or all customers are served. Default: Use Euclidean distance if available, or matrix distance; max iterations per vehicle = node_num.
+Cheapest Insertion Heuristic: Initialize with a single route per customer-depot pair. Iteratively select the unserved customer with the lowest insertion cost (increase in total route distance) and insert it into the feasible route (via InsertOperator) where the added cost is minimal, respecting capacity. Default: Insertion cost = distance savings; regret threshold = 0.1 * avg_depot_distance; run until all served.
+Clarke-Wright Savings Heuristic: Begin with individual depot-customer-depot routes for all customers. Compute savings for merging adjacent routes (s_ikj = dist(i,k) + dist(j,k) - dist(i,j) where i,j are route ends, k merge point). Greedily merge routes with highest savings using InsertOperator to append segments, ensuring capacity. Default: Parallel version (merge independently); sort savings descending; stop when no feasible merges.
+Sweep Heuristic: Order customers by angular position around the depot (polar angle). Start empty routes. Sweep clockwise, appending consecutive customers in angular order to the current vehicle if capacity allows (using AppendOperator); open a new vehicle when capacity exceeded. Default: Angle from positive x-axis; depot at (0,0) if coordinates available, else use distance_matrix approximation; one sweep per vehicle until all served.
+Random Greedy Heuristic: Initialize empty routes. For each vehicle, randomly select unvisited customers that fit capacity and append them in random order (AppendOperator), preferring closer ones with probability proportional to inverse distance. Repeat until all customers assigned or vehicles exhausted. Default: Probability weight = 1 / (1 + distance); random seed from algorithm_data if provided; ensure at least 50% greedy selection ratio.
+***
+
+These heuristics are designed to be constructive, building solutions incrementally using the provided operators (primarily AppendOperator for sequential addition, with InsertOperator for refinements in insertion-based ones). They leverage the problem_state dict: input data for distances/demands/capacity, helper functions like get_unvisited_customers, can_add_to_route, and validation_solution for feasibility checks, and statistics like spatial_clustering or remaining_demand_ratio to bias selections (e.g., in Random Greedy). Diversity comes from strategies: greedy proximity (Nearest), cost-aware insertion (Cheapest), merge-based (Savings), geometric ordering (Sweep), and stochastic (Random). For implementation, the heuristic function would return an operator instance (e.g., AppendOperator(vehicle_id, node)) and updated algorithm_data (e.g., {'partial_solution': new_solution, 'used_vehicles': count}). Post-construction, a simple 2-opt improvement could be added via additional operators if allowed, but kept minimal here. Hyper-parameters like thresholds are set with sensible defaults based on instance stats (e.g., avg_depot_distance for scaling). If coordinates are in problem_state (not explicitly listed but inferable from distance_matrix), use them for Sweep; otherwise, approximate angles via distances.
+------------------------------------------------------------------------------------
+
+user
+Based on previous discuss, we get the heuristic Cheapest Insertion Heuristic:
+ Initialize with a single route per customer-depot pair. Iteratively select the unserved customer with the lowest insertion cost (increase in total route distance) and insert it into the feasible route (via InsertOperator) where the added cost is minimal, respecting capacity. Default: Insertion cost = distance savings; regret threshold = 0.1 * avg_depot_distance; run until all served..
+
+Now please implement it in python function cheapest_insertion_heuristic_c124.
+
+To implement this heuristic function in python, please note:
+1. We can assume that Solution and all Operators are imported.
+2. The operator type must be defined previously, do not create a new one in your code.
+3. Never modify the data in problem_state.
+4. All hyper parameters in kwargs should be set a default value.
+5. Any reasonable partial solution may be used as input, such as an empty solution.
+6. Comments in the code are very important. They must clearly explain which hyper-parameters are required by the algorithm (i.e., the parameters in **kwargs), how the algorithm proceeds, and under what circumstances it will not return any operator or will return an empty operator. We hope that people can understand the principles and workflow of the algorithm clearly just by reading the comments, without needing to look at the code.
+7. The name of function must be cheapest_insertion_heuristic_c124. The TargetOperatorType should be replaced by real returned operator type.
+8. No any omissions or placeholders, I'm just going to use the code.
+9. For the algorithm to update the algorithm_data, do not modify directly "algorithm_data["abc"] = 123", we should return operator, {"abc": 123}.For algorithm that do not update them, just return operator, {}
+10. For the circumstances that algorithm return empty operator, please return None, {}.
+11. Do not forget to check whether the content is empty when calculating the min/max/average/std/..., such as when using min([distance[node][other] for other in nodes if other != node]).
+12. Make the result must be valid.
+13. Do not forget the input problem_state:
+problem_state (dict): A dictionary containing the problem state information, organized into five categories of keys:
+1. Input Data:
+    - node_num (int): The total number of nodes in the problem.
+    - distance_matrix (numpy.ndarray): A 2D array representing the distances between nodes.
+    - vehicle_num (int): The total number of vehicles.
+    - capacity (int): The capacity for each vehicle and all vehicles share the same value.
+    - depot (int): The index for depot node.
+    - demands (numpy.ndarray): The demand of each node.
+2. Current Solution:
+    - current_solution (Solution): Current solution instance.
+    - total_current_cost (int): The total cost of the current solution for all vehicles.
+3. Helper Functions (these Functions may help you to generation the following heuristic):
+    - get_problem_state (callable): def get_problem_state(solution: Solution) -> dict: The function to get the complete problem state for given solution without modifying it. Returns a dictionary containing 'total_scheduling_cost' and other state information.
+    - validation_solution (callable): def validation_solution(solution: Solution = None) -> bool: The function to check whether the solution is valid according to all mathematical model constraints. If solution is None, checks current solution. Returns True if valid, False otherwise.
+    - get_unvisited_customers (callable): def get_unvisited_customers(solution: Solution = None) -> list[int]: Get list of customer node IDs that have not been visited in any route. Excludes depot from the result. If solution is None, uses current solution. Returns list of integers representing unvisited customer IDs.
+    - get_route_load (callable): def get_route_load(vehicle_id: int, solution: Solution = None) -> float: Calculate the total demand of all customers in a specific vehicle's route. Excludes depot demand from calculation (only counts customer nodes). If solution is None, uses current solution. Returns float representing the total load of the route.
+    - can_add_to_route (callable): def can_add_to_route(vehicle_id: int, customer: int, solution: Solution = None) -> bool: Check if a customer can be added to a vehicle's route without violating capacity constraint. Considers current route load plus customer demand versus vehicle capacity. If solution is None, uses current solution. Returns True if the customer can be added without exceeding capacity, False otherwise.
+4. Instance Statistics (these Instance Statistics may help you to generation the following heuristic):
+    - num_customers (int): The number of customer nodes excluding the depot.
+    - total_demand (float): The sum of demands for all customer nodes.
+    - demand_cv (float): The coefficient of variation of customer demands (std/mean).
+    - avg_depot_distance (float): The average distance from depot to all customers.
+    - spatial_clustering (float): The average of minimum distances between each customer and its nearest neighbor customer.
+    - capacity_to_total_demand_ratio (float): The ratio of total vehicle capacity (capacity * vehicle_num) to total demand.
+5. Current Solution Statistics (these Solution Statistics may help you to generation the following heuristic):
+    - served_customers_ratio (float): Ratio of served customers to total customers.
+    - total_traveled_distance (float): Total distance traveled in all routes (including partial).
+    - vehicles_used (int): Number of non-empty routes (active or complete).
+    - avg_load_utilization (float): Average load utilization across used routes.
+    - remaining_demand_ratio (float): Ratio of remaining demand to total customer demand.
+    - unserved_spatial_clustering (float): Average minimum distance between unserved customers.
+    - num_unserved_customers (int): Number of unserved customers.
+
+For cvrp problem, take about following:
+Ensure your heuristic produces valid and complete results.
+CRITICAL: Your algorithm MUST visit ALL customers. Only return None when get_unvisited_customers() returns empty list.
+
+The problem will work on following data.
+Please try to understand the data and generate based on them, especially setting the default value for hyper-parameters:
+All data is possible
+
+The response format is very important. For better communication, please respond to me in this format:
+***python_code:
+from src.problems.cvrp.components import *
+import other_library (if necessary)
+def cheapest_insertion_heuristic_c124(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[TargetOperatorType, dict]:
+    """ Description for this heuristic algorithm.
+
+    Args:
+        problem_state (dict): The dictionary contains the problem state.. In this algorithm, the following items are necessary:
+            - necessary_key (value type): description
+            - necessary_key (value type): description
+            ...
+        (Optional and can be omitted if no algorithm data) algorithm_data (dict): The algorithm dictionary for current algorithm only. In this algorithm, the following items are necessary:
+            - necessary_key (value type): description
+            - necessary_key (value type): description
+            ...
+        (Optional and can be omitted if no hyper parameters data) introduction for hyper parameters in kwargs if used.
+
+    Returns:
+        Description of this operator.
+        Description of updated algorithm data.
+
+        ...
+    """
+Ensure there is no other content inside the ***, ,and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+
+------------------------------------------------------------------------------------
+
+assistant
+***python_code:
+from src.problems.cvrp.components import *
+import numpy as np
+
+def cheapest_insertion_heuristic_c124(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[InsertOperator, dict]:
+    """
+    Cheapest Insertion Heuristic for CVRP: A constructive heuristic that builds the solution incrementally by repeatedly selecting the unserved customer with the lowest insertion cost (minimal increase in total route distance) and inserting it into the most feasible position in an existing or new route, respecting capacity constraints. This is applied step-by-step in a hyper-heuristic framework, where each call adds one customer until all are served.
+
+    The algorithm proceeds as follows:
+    1. Retrieve the current solution and check for unserved customers using get_unvisited_customers.
+    2. If no unserved customers, return None, {} to indicate completion.
+    3. For each unserved customer k:
+       - For each vehicle v (0 to vehicle_num-1):
+         - If adding k to v's route violates capacity (via can_add_to_route), skip this vehicle.
+         - For each possible insertion position pos (0 to len(route[v]) inclusive):
+           - Compute the insertion delta cost considering depot connections:
+             - pos == 0 (before first): dist(depot, k) + dist(k, first) - dist(depot, first) if route non-empty, else 2 * dist(depot, k).
+             - pos == len(route) (after last): dist(last, k) + dist(k, depot) - dist(last, depot).
+             - Otherwise (between route[pos-1] and route[pos]): dist(prev, k) + dist(k, next) - dist(prev, next).
+           - Track the minimum delta for this k across all feasible (v, pos).
+    4. Select the customer k with the overall smallest minimum delta.
+    5. For that k, return the InsertOperator for the corresponding best (v, pos).
+    6. If no feasible insertion found for any k (e.g., capacity exhausted but unserved remain, though assuming feasible instances), return None, {}.
+    7. The process repeats in subsequent calls until all customers are served, ensuring a complete and valid solution (validated implicitly via helpers; full validation via validation_solution post-construction).
+
+    Hyper-parameters in kwargs:
+    - regret_threshold (float, default=0.1 * problem_state['avg_depot_distance']): A threshold for potential regret-based selection (e.g., difference between best and second-best insertion costs). In this basic implementation, it is not actively used for selection (always selects cheapest), but can be extended for regret-k variants. If provided, it scales with instance size.
+
+    Args:
+        problem_state (dict): The dictionary contains the problem state. In this algorithm, the following items are necessary:
+            - current_solution (Solution): Current partial or complete solution instance to build upon.
+            - distance_matrix (numpy.ndarray): 2D array of distances between all nodes (including depot).
+            - vehicle_num (int): Number of available vehicles.
+            - capacity (int): Capacity per vehicle.
+            - depot (int): Index of the depot node.
+            - demands (numpy.ndarray): 1D array of demands for all nodes (depot demand assumed 0).
+            - get_unvisited_customers (callable): Function to get list of unvisited customer node IDs.
+            - get_route_load (callable): Function to get current load of a vehicle's route.
+            - can_add_to_route (callable): Function to check if a customer can be added to a vehicle without exceeding capacity.
+        algorithm_data (dict): The algorithm dictionary for current algorithm only. In this algorithm, no items are necessary (not used).
+        **kwargs: Optional hyper-parameters, including 'regret_threshold' (float).
+
+    Returns:
+        tuple[InsertOperator, dict]: The InsertOperator instance to insert the selected unserved customer into the best feasible position of a route (new or existing), which minimizes the distance increase while respecting capacity. The second element is an empty dict as no algorithm data is updated in this implementation. Returns (None, {}) if no unserved customers or no feasible insertion possible.
+    """
+    # Retrieve necessary data from problem_state (never modify problem_state)
+    solution = problem_state['current_solution']
+    distance_matrix = problem_state['distance_matrix']
+    vehicle_num = problem_state['vehicle_num']
+    capacity = problem_state['capacity']
+    depot = problem_state['depot']
+    demands = problem_state['demands']
+    get_unvisited_customers_func = problem_state['get_unvisited_customers']
+    get_route_load_func = problem_state['get_route_load']
+    can_add_to_route_func = problem_state['can_add_to_route']
+
+    # Hyper-parameter defaults
+    regret_threshold = kwargs.get('regret_threshold', 0.1 * problem_state.get('avg_depot_distance', 1.0))  # Default based on instance stat; not used in basic selection but available for extensions
+
+    # Get unserved customers
+    unvisited = get_unvisited_customers_func(solution)
+    if not unvisited:
+        return None, {}
+
+    # Initialize tracking for best insertion across all unvisited customers
+    best_k = None
+    best_vehicle_id = None
+    best_position = None
+    best_delta = float('inf')
+
+    # For each unvisited customer k, find the minimum feasible insertion delta and best (v, pos) for it
+    for k in unvisited:
+        min_delta_for_k = float('inf')
+        best_v_for_k = None
+        best_pos_for_k = None
+
+        for v in range(vehicle_num):
+            route = solution.routes[v]
+            current_load = get_route_load_func(v, solution)
+            customer_demand = demands[k]
+
+            # Check capacity feasibility for this vehicle (independent of position)
+            if current_load + customer_demand > capacity:
+                continue
+
+            # Now check all possible insertion positions: 0 (before first) to len(route) (after last)
+            for pos in range(len(route) + 1):
+                if pos == 0:  # Insert at beginning
+                    if len(route) == 0:
+                        # New route: full cost for depot -> k -> depot
+                        delta = 2 * distance_matrix[depot, k]
+                    else:
+                        # Before first customer
+                        a = depot
+                        b = route[0]
+                        delta = distance_matrix[a, k] + distance_matrix[k, b] - distance_matrix[a, b]
+                elif pos == len(route):  # Insert at end
+                    if len(route) == 0:
+                        # Should not reach here as pos=0 handles empty
+                        continue
+                    a = route[-1]
+                    b = depot
+                    delta = distance_matrix[a, k] + distance_matrix[k, b] - distance_matrix[a, b]
+                else:  # Insert between route[pos-1] and route[pos]
+                    a = route[pos - 1]
+                    b = route[pos]
+                    delta = distance_matrix[a, k] + distance_matrix[k, b] - distance_matrix[a, b]
+
+                # Update min for this k if better
+                if delta < min_delta_for_k:
+                    min_delta_for_k = delta
+                    best_v_for_k = v
+                    best_pos_for_k = pos
+
+        # If a feasible insertion found for this k, compare its min_delta to overall best
+        if min_delta_for_k < float('inf') and min_delta_for_k < best_delta:
+            best_delta = min_delta_for_k
+            best_k = k
+            best_vehicle_id = best_v_for_k
+            best_position = best_pos_for_k
+
+    # If no feasible insertion found for any k, return None (though assumes feasible problem)
+    if best_k is None:
+        return None, {}
+
+    # Return the operator for the best insertion (note: InsertOperator works on empty lists via insert(0, node))
+    operator = InsertOperator(best_vehicle_id, best_k, best_position)
+    return operator, {}
+***
+------------------------------------------------------------------------------------
+
+user
+To verify whether the code is correct, we conducted a smoke test.
+This is the test data:
+num_customers:31
+total_demand:410
+demand_cv:0.54
+avg_depot_distance:60.33
+spatial_clustering:9.84
+capacity_to_total_demand_ratio:1.22
+
+We run the following operations:
+None
+
+The current solution are
+vehicle_0: 0->0
+vehicle_1: 0->0
+vehicle_2: 0->0
+vehicle_3: 0->0
+vehicle_4: 0->0
+
+with related problem state
+served_customers_ratio:0.03
+total_traveled_distance:0.0
+vehicles_used:5
+avg_load_utilization:0.0
+remaining_demand_ratio:1.0
+unserved_spatial_clustering:9.84
+num_unserved_customers:31
+
+Now we run cheapest_insertion_heuristic_c124 once and think about what the expected output is.
+
+The response format is very important. For better communication, please respond to me in this format:
+***expected_result:xxx***
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+------------------------------------------------------------------------------------
+
+assistant
+***expected_result:InsertOperator(vehicle_id=0, node=closest_unserved_customer_to_depot, position=0), {}***
+
+In this initial state with all empty routes (vehicles_used=5 but all loads=0, num_unserved_customers=31), the heuristic evaluates insertions into empty routes. For any unserved customer k, the minimal delta cost is 2 * distance_matrix[depot, k] (round-trip from depot), and since all vehicles are feasible (empty, so can_add_to_route=True for any k assuming demands[k] <= capacity), it selects the k minimizing this delta—i.e., the customer closest to the depot. It inserts into the first vehicle (v=0, as loop starts from 0), at position=0 (beginning of empty route). The second element is {} as no algorithm_data is updated. Subsequent calls would build from this partial solution, inserting the next cheapest, potentially into existing or new routes. If the instance is feasible (capacity_to_total_demand_ratio=1.22 >1, total_demand=410, implying capacity ~ vehicle_num * capacity >=410), it will continue until all 31 customers are served. The slight discrepancy in served_customers_ratio=0.03 might be a rounding or pre-initialization artifact, but unserved=31 confirms fully unserved start. Validation would pass post-insertion as capacity-respecting and no duplicates.
+------------------------------------------------------------------------------------
+
+user
+In fact we run the cheapest_insertion_heuristic_c124 once, and now we got the output operation from cheapest_insertion_heuristic_c124:
+InsertOperator(vehicle_id=0, node=30, position=0)
+
+The updated solution are
+vehicle_0: 0->30->0
+vehicle_1: 0->0
+vehicle_2: 0->0
+vehicle_3: 0->0
+vehicle_4: 0->0
+
+with related problem state
+served_customers_ratio:0.06
+total_traveled_distance:32.56
+vehicles_used:5
+avg_load_utilization:0.03
+remaining_demand_ratio:0.97
+unserved_spatial_clustering:9.99
+num_unserved_customers:30
+
+Please compare with your expected result: InsertOperator(vehicle_id=0, node=closest_unserved_customer_to_depot, position=0), {}
+1. If the result is aligned with your target output, respond to me ***python_code:correct*** and we will save the code and finish this generation.
+2. If the result is not aligned with your target output and you can not generate correct one, respond to me ***python_code:None*** and we will stop this generation.
+3. If the result is not aligned with your target output and you can fix up this issues, please respond to me in this format:
+***python_code:
+from src.problems.cvrp.components import *
+import other_library (if necessary)
+def cheapest_insertion_heuristic_c124(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[TargetOperatorType, dict]:
+    """ Description for this heuristic algorithm.
+
+    Args:
+        problem_state (dict): The dictionary contains the problem state.. In this algorithm, the following items are necessary:
+            - necessary_key (value type): description
+            - necessary_key (value type): description
+            ...
+        (Optional and can be omitted if no algorithm data) algorithm_data (dict): The algorithm dictionary for current algorithm only. In this algorithm, the following items are necessary:
+            - necessary_key (value type): description
+            - necessary_key (value type): description
+            ...
+        (Optional and can be omitted if no hyper parameters data) introduction for hyper parameters in kwargs if used.
+
+    Returns:
+        Description of this operator.
+        Description of updated algorithm data.
+
+        ...
+    """
+Ensure there is no other content inside the ***, and analysis outside *** is welcome.
+If you have no information to provide, simply respond with ***None***.
+
+------------------------------------------------------------------------------------
+
+assistant
+***python_code:correct***
+------------------------------------------------------------------------------------
+
+user
+To ensure the stable of heuristics, we adjust the code to:
+from src.problems.cvrp.components import *
+import numpy as np
+
+def cheapest_insertion_heuristic_c124(problem_state: dict, algorithm_data: dict, **kwargs) -> tuple[InsertOperator, dict]:
+    """
+    Cheapest Insertion Heuristic for CVRP: A constructive heuristic that builds the solution incrementally by repeatedly selecting the unserved customer with the lowest insertion cost (minimal increase in total route distance) and inserting it into the most feasible position in an existing or new route, respecting capacity constraints. This is applied step-by-step in a hyper-heuristic framework, where each call adds one customer until all are served.
+
+    The algorithm proceeds as follows:
+    1. Retrieve the current solution and check for unserved customers using get_unvisited_customers.
+    2. If no unserved customers, return None, {} to indicate completion.
+    3. For each unserved customer k:
+       - For each vehicle v (0 to vehicle_num-1):
+         - If adding k to v's route violates capacity (via can_add_to_route), skip this vehicle.
+         - For each possible insertion position pos (0 to len(route[v]) inclusive):
+           - Compute the insertion delta cost considering depot connections:
+             - pos == 0 (before first): dist(depot, k) + dist(k, first) - dist(depot, first) if route non-empty, else 2 * dist(depot, k).
+             - pos == len(route) (after last): dist(last, k) + dist(k, depot) - dist(last, depot).
+             - Otherwise (between route[pos-1] and route[pos]): dist(prev, k) + dist(k, next) - dist(prev, next).
+           - Track the minimum delta for this k across all feasible (v, pos).
+    4. Select the customer k with the overall smallest minimum delta.
+    5. For that k, return the InsertOperator for the corresponding best (v, pos).
+    6. If no feasible insertion found for any k (e.g., capacity exhausted but unserved remain, though assuming feasible instances), return None, {}.
+    7. The process repeats in subsequent calls until all customers are served, ensuring a complete and valid solution (validated implicitly via helpers; full validation via validation_solution post-construction).
+
+    Hyper-parameters in kwargs:
+    - regret_threshold (float, default=0.1 * problem_state['avg_depot_distance']): A threshold for potential regret-based selection (e.g., difference between best and second-best insertion costs). In this basic implementation, it is not actively used for selection (always selects cheapest), but can be extended for regret-k variants. If provided, it scales with instance size.
+
+    Args:
+        problem_state (dict): The dictionary contains the problem state. In this algorithm, the following items are necessary:
+            - current_solution (Solution): Current partial or complete solution instance to build upon.
+            - distance_matrix (numpy.ndarray): 2D array of distances between all nodes (including depot).
+            - vehicle_num (int): Number of available vehicles.
+            - capacity (int): Capacity per vehicle.
+            - depot (int): Index of the depot node.
+            - demands (numpy.ndarray): 1D array of demands for all nodes (depot demand assumed 0).
+            - get_unvisited_customers (callable): Function to get list of unvisited customer node IDs.
+            - get_route_load (callable): Function to get current load of a vehicle's route.
+            - can_add_to_route (callable): Function to check if a customer can be added to a vehicle without exceeding capacity.
+        algorithm_data (dict): The algorithm dictionary for current algorithm only. In this algorithm, no items are necessary (not used).
+        **kwargs: Optional hyper-parameters, including 'regret_threshold' (float).
+
+    Returns:
+        tuple[InsertOperator, dict]: The InsertOperator instance to insert the selected unserved customer into the best feasible position of a route (new or existing), which minimizes the distance increase while respecting capacity. The second element is an empty dict as no algorithm data is updated in this implementation. Returns (None, {}) if no unserved customers or no feasible insertion possible.
+    """
+    # Retrieve necessary data from problem_state (never modify problem_state)
+    solution = problem_state['current_solution']
+    distance_matrix = problem_state['distance_matrix']
+    vehicle_num = problem_state['vehicle_num']
+    capacity = problem_state['capacity']
+    depot = problem_state['depot']
+    demands = problem_state['demands']
+    get_unvisited_customers_func = problem_state['get_unvisited_customers']
+    get_route_load_func = problem_state['get_route_load']
+    can_add_to_route_func = problem_state['can_add_to_route']
+
+    # Hyper-parameter defaults
+    regret_threshold = kwargs.get('regret_threshold', 0.1 * problem_state.get('avg_depot_distance', 1.0))  # Default based on instance stat; not used in basic selection but available for extensions
+
+    # Get unserved customers
+    unvisited = get_unvisited_customers_func(solution)
+    if not unvisited:
+        return None, {}
+
+    # Initialize tracking for best insertion across all unvisited customers
+    best_k = None
+    best_vehicle_id = None
+    best_position = None
+    best_delta = float('inf')
+
+    # For each unvisited customer k, find the minimum feasible insertion delta and best (v, pos) for it
+    for k in unvisited:
+        min_delta_for_k = float('inf')
+        best_v_for_k = None
+        best_pos_for_k = None
+
+        for v in range(vehicle_num):
+            route = solution.routes[v]
+            current_load = get_route_load_func(v, solution)
+            customer_demand = demands[k]
+
+            # Check capacity feasibility for this vehicle (independent of position)
+            if current_load + customer_demand > capacity:
+                continue
+
+            # Now check all possible insertion positions: 0 (before first) to len(route) (after last)
+            for pos in range(len(route) + 1):
+                if pos == 0:  # Insert at beginning
+                    if len(route) == 0:
+                        # New route: full cost for depot -> k -> depot
+                        delta = 2 * distance_matrix[depot, k]
+                    else:
+                        # Before first customer
+                        a = depot
+                        b = route[0]
+                        delta = distance_matrix[a, k] + distance_matrix[k, b] - distance_matrix[a, b]
+                elif pos == len(route):  # Insert at end
+                    if len(route) == 0:
+                        # Should not reach here as pos=0 handles empty
+                        continue
+                    a = route[-1]
+                    b = depot
+                    delta = distance_matrix[a, k] + distance_matrix[k, b] - distance_matrix[a, b]
+                else:  # Insert between route[pos-1] and route[pos]
+                    a = route[pos - 1]
+                    b = route[pos]
+                    delta = distance_matrix[a, k] + distance_matrix[k, b] - distance_matrix[a, b]
+
+                # Update min for this k if better
+                if delta < min_delta_for_k:
+                    min_delta_for_k = delta
+                    best_v_for_k = v
+                    best_pos_for_k = pos
+
+        # If a feasible insertion found for this k, compare its min_delta to overall best
+        if min_delta_for_k < float('inf') and min_delta_for_k < best_delta:
+            best_delta = min_delta_for_k
+            best_k = k
+            best_vehicle_id = best_v_for_k
+            best_position = best_pos_for_k
+
+    # If no feasible insertion found for any k, return None (though assumes feasible problem)
+    if best_k is None:
+        return None, {}
+
+    # Return the operator for the best insertion (note: InsertOperator works on empty lists via insert(0, node))
+    operator = InsertOperator(best_vehicle_id, best_k, best_position)
+    return operator, {}
+------------------------------------------------------------------------------------
+

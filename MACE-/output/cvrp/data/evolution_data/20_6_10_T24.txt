@@ -1,0 +1,59 @@
+# Balanced Multi-Objective Port Scheduling Problem Instance with Horsepower Constraints
+# Mathematical model with multi-tugboat combinations and horsepower requirements
+# Time configuration: T=24, each period = 1 hour
+# Format: parameter_name = value or [array values]
+
+# Basic dimensions
+vessel_num = 20
+berth_num = 6
+tugboat_num = 10
+time_periods = 24
+
+# Vessel data (20 vessels) - All times in INTEGER periods
+vessel_sizes = [5, 3, 4, 5, 3, 3, 4, 2, 3, 5, 5, 2, 4, 5, 5, 2, 2, 3, 4, 3]
+vessel_etas = [6, 11, 14, 1, 8, 1, 15, 1, 1, 3, 15, 2, 2, 16, 4, 5, 7, 15, 2, 7]
+vessel_durations = [3, 1, 3, 2, 2, 1, 3, 1, 1, 3, 3, 2, 3, 3, 1, 1, 1, 1, 3, 1]
+vessel_inbound_service_times = [2, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2, 2, 1, 1, 2, 2]
+vessel_outbound_service_times = [2, 1, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1]
+vessel_priority_weights = [2.5, 2.3, 2.5, 2.4, 2.2, 2.6, 2.8, 2.7, 1.4, 2.6, 2.4, 2.1, 2.3, 2.3, 2.3, 2.0, 2.5, 2.4, 2.7, 1.6]
+vessel_waiting_costs = [56.4, 42.8, 68.7, 65.2, 41.4, 25.1, 58.9, 18.0, 34.1, 59.1, 67.4, 15.3, 52.3, 61.7, 48.6, 29.0, 33.8, 43.4, 47.2, 30.0]
+vessel_jit_costs = [19.0, 21.3, 27.8, 20.5, 12.8, 8.2, 18.5, 6.2, 10.6, 28.8, 29.1, 6.2, 15.9, 25.1, 19.5, 11.2, 11.4, 17.6, 20.0, 11.1]
+vessel_horsepower_requirements = [5720, 2936, 3273, 5651, 2422, 2991, 4045, 1947, 2542, 5012, 5295, 1592, 3522, 5161, 5176, 2048, 1408, 2944, 4313, 2867]
+vessel_early_limits = [2, 1, 1, 1, 2, 2, 1, 1, 1, 1, 2, 1, 2, 2, 1, 1, 1, 1, 3, 2]
+vessel_late_limits = [1, 3, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 2, 2, 1]
+
+# Berth data (6 berths)
+berth_capacities = [5, 4, 4, 3, 2, 2]
+
+# Tugboat data (10 tugboats) - Horsepower-based system
+tugboat_horsepower = [2726, 2546, 4259, 1051, 2516, 1656, 1470, 1735, 4173, 2237]
+tugboat_costs = [82.2, 76.9, 92.5, 35.0, 67.8, 44.9, 43.9, 49.5, 95.6, 50.4]
+
+# System parameters for multi-tugboat combinations
+inbound_preparation_time = 1
+outbound_preparation_time = 1
+max_tugboats_per_service = 2
+time_constraint_tolerance = 2
+penalty_parameter = 1862.4625000000003
+objective_weights = [0.24193095058581238, 0.20736153484722344, 0.28881505212466385, 0.11888039323182792]
+
+# Mathematical model parameters (horsepower-based)
+M = 1862.4625000000003
+lambda_1 = 0.24193095058581238
+lambda_2 = 0.20736153484722344
+lambda_3 = 0.28881505212466385
+lambda_4 = 0.11888039323182792
+epsilon_time = 2
+rho_in = 1
+rho_out = 1
+H_max = 2
+tau_in = [2, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2, 2, 1, 1, 2, 2]
+tau_out = [2, 1, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 1, 1, 2, 1]
+alpha = [2.5, 2.3, 2.5, 2.4, 2.2, 2.6, 2.8, 2.7, 1.4, 2.6, 2.4, 2.1, 2.3, 2.3, 2.3, 2.0, 2.5, 2.4, 2.7, 1.6]
+beta = [56.4, 42.8, 68.7, 65.2, 41.4, 25.1, 58.9, 18.0, 34.1, 59.1, 67.4, 15.3, 52.3, 61.7, 48.6, 29.0, 33.8, 43.4, 47.2, 30.0]
+gamma = [19.0, 21.3, 27.8, 20.5, 12.8, 8.2, 18.5, 6.2, 10.6, 28.8, 29.1, 6.2, 15.9, 25.1, 19.5, 11.2, 11.4, 17.6, 20.0, 11.1]
+P_k = [2726, 2546, 4259, 1051, 2516, 1656, 1470, 1735, 4173, 2237]
+P_req = [5720, 2936, 3273, 5651, 2422, 2991, 4045, 1947, 2542, 5012, 5295, 1592, 3522, 5161, 5176, 2048, 1408, 2944, 4313, 2867]
+c_k = [82.2, 76.9, 92.5, 35.0, 67.8, 44.9, 43.9, 49.5, 95.6, 50.4]
+Delta_early = [2, 1, 1, 1, 2, 2, 1, 1, 1, 1, 2, 1, 2, 2, 1, 1, 1, 1, 3, 2]
+Delta_late = [1, 3, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 3, 2, 2, 1]

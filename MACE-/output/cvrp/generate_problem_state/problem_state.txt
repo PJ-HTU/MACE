@@ -1,0 +1,32 @@
+problem_state (dict): A dictionary containing the problem state information, organized into five categories of keys:
+1. Input Data:
+    - node_num (int): The total number of nodes in the problem.
+    - distance_matrix (numpy.ndarray): A 2D array representing the distances between nodes.
+    - vehicle_num (int): The total number of vehicles.
+    - capacity (int): The capacity for each vehicle and all vehicles share the same value.
+    - depot (int): The index for depot node.
+    - demands (numpy.ndarray): The demand of each node.
+2. Current Solution:
+    - current_solution (Solution): Current solution instance.
+    - total_current_cost (int): The total cost of the current solution for all vehicles.
+3. Helper Functions (these Functions may help you to generation the following heuristic):
+    - get_problem_state (callable): def get_problem_state(solution: Solution) -> dict: The function to get the complete problem state for given solution without modifying it. Returns a dictionary containing 'total_scheduling_cost' and other state information.
+    - validation_solution (callable): def validation_solution(solution: Solution = None) -> bool: The function to check whether the solution is valid according to all mathematical model constraints. If solution is None, checks current solution. Returns True if valid, False otherwise.
+    - get_unvisited_customers (callable): def get_unvisited_customers(solution: Solution = None) -> list[int]: Get list of customer node IDs that have not been visited in any route. Excludes depot from the result. If solution is None, uses current solution. Returns list of integers representing unvisited customer IDs.
+    - get_route_load (callable): def get_route_load(vehicle_id: int, solution: Solution = None) -> float: Calculate the total demand of all customers in a specific vehicle's route. Excludes depot demand from calculation (only counts customer nodes). If solution is None, uses current solution. Returns float representing the total load of the route.
+    - can_add_to_route (callable): def can_add_to_route(vehicle_id: int, customer: int, solution: Solution = None) -> bool: Check if a customer can be added to a vehicle's route without violating capacity constraint. Considers current route load plus customer demand versus vehicle capacity. If solution is None, uses current solution. Returns True if the customer can be added without exceeding capacity, False otherwise.
+4. Instance Statistics (these Instance Statistics may help you to generation the following heuristic):
+    - num_customers (int): The number of customer nodes excluding the depot.
+    - total_demand (float): The sum of demands for all customer nodes.
+    - demand_cv (float): The coefficient of variation of customer demands (std/mean).
+    - avg_depot_distance (float): The average distance from depot to all customers.
+    - spatial_clustering (float): The average of minimum distances between each customer and its nearest neighbor customer.
+    - capacity_to_total_demand_ratio (float): The ratio of total vehicle capacity (capacity * vehicle_num) to total demand.
+5. Current Solution Statistics (these Solution Statistics may help you to generation the following heuristic):
+    - served_customers_ratio (float): Ratio of served customers to total customers.
+    - total_traveled_distance (float): Total distance traveled in all routes (including partial).
+    - vehicles_used (int): Number of non-empty routes (active or complete).
+    - avg_load_utilization (float): Average load utilization across used routes.
+    - remaining_demand_ratio (float): Ratio of remaining demand to total customer demand.
+    - unserved_spatial_clustering (float): Average minimum distance between unserved customers.
+    - num_unserved_customers (int): Number of unserved customers.
