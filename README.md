@@ -71,124 +71,6 @@ Uses a minimax MILP formulation to select the optimal subset of heuristics from 
 **Multi-Budget Execution**:  
 Stage Two runs independently under different time budgets (Tₘₐₓ), producing portfolios spanning the quality-time spectrum. This enables practitioners to select appropriate algorithms based on operational urgency—fast portfolios for emergency decisions, balanced portfolios for routine operations, or high-quality portfolios for strategic planning.
 
----
-
-## Installation
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/MACE.git
-cd MACE
-```
-
-### 2. Set Up Environment
-
-We recommend using Conda for environment management:
-
-```bash
-conda create -n mace python=3.8
-conda activate mace
-pip install -r requirements.txt
-```
-
-**Key Dependencies:**
-- NumPy, Pandas (data processing)
-- Gurobi (MILP solver for complementary selection)
-- OpenAI/Anthropic (LLM APIs)
-- LangChain (prompt management)
-- NetworkX, TSPLIB95 (problem utilities)
-
-### 3. Configure LLM
-
-Create an LLM configuration file in `output/llm_config/`. The framework supports multiple backends:
-
-**For Claude Sonnet 4.5** (recommended, used in paper):
-```json
-{
-    "type": "anthropic",
-    "model": "claude-sonnet-4.5",
-    "api_key": "YOUR_API_KEY",
-    "temperature": 0.7,
-    "top_p": 0.95,
-    "max_tokens": 8192
-}
-```
-
-**For OpenAI GPT-4**:
-```json
-{
-    "type": "openai",
-    "model": "gpt-4o",
-    "api_key": "YOUR_API_KEY",
-    "temperature": 0.7,
-    "max_tokens": 4096
-}
-```
-
-**For Azure OpenAI**:
-```json
-{
-    "type": "azure_openai",
-    "api_base": "https://YOUR_RESOURCE.openai.azure.com/",
-    "api_key": "YOUR_API_KEY",
-    "deployment_name": "gpt-4"
-}
-```
-
-### 4. Prepare Data
-
-Download benchmark datasets using the provided script:
-
-```bash
-python scripts/download_data.py
-```
-
-This populates the `data/` directory with standard benchmarks. Alternatively, manually download from:
-
-| Problem | Source |
-|---------|--------|
-| JSSP    | [OR-Library](https://people.brunel.ac.uk/~mastjjb/jeb/orlib/jobshopinfo.html) |
-| TSP     | [TSPLIB](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/) |
-| CVRP    | [CVRPLIB](http://vrp.atd-lab.inf.puc-rio.br/index.php/en/) |
-| PSP     | Generated (included) |
-
----
-
-## Quick Start
-
-### Using Jupyter Notebooks (Recommended)
-
-The framework provides interactive notebooks for each stage:
-
-**Stage One - Component Generation:**
-- `generate_problem_state.ipynb` - Generate state space
-- `generate_action_space.ipynb` - Generate action space  
-- `generate_tool_library.ipynb` - Generate tool library
-- `generate_heuristic.ipynb` - Generate initial heuristics
-
-**Stage Two - Evolution:**
-- `evolve_heuristic.ipynb` - Evolve heuristic portfolios
-
-Simply configure the problem type and LLM settings in each notebook, then run cells sequentially.
-
-### Command-Line Interface
-
-For batch processing or automation:
-
-```bash
-# Stage One: Generate all components for TSP
-python scripts/run_stage_one.py --problem tsp --llm_config output/llm_config/claude.json
-
-# Stage Two: Evolve heuristics with 300s time budget
-python scripts/run_stage_two.py --problem tsp --time_limit 300 --population_size 10
-
-# Evaluate on test set
-python scripts/evaluate.py --problem tsp --test_data data/tsp/test_data
-```
-
----
-
 ## Usage Guide
 
 ### Stage One: Generating Problem Components
@@ -387,6 +269,122 @@ Time budgets vary by problem to reflect computational complexity differences. Fo
 Test sets contain 15 instances per problem (5 small, 5 medium, 5 large scale instances). Solution quality is measured as percentage gap from known optimal solutions, or relative to best-found solutions for problems without established optima.
 
 **Hardware**: Experiments run on Intel Xeon E5-2680 v4 @ 2.4GHz with 64GB RAM.
+
+---
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/YOUR_USERNAME/MACE.git
+cd MACE
+```
+
+### 2. Set Up Environment
+
+We recommend using Conda for environment management:
+
+```bash
+conda create -n mace python=3.8
+conda activate mace
+pip install -r requirements.txt
+```
+
+**Key Dependencies:**
+- NumPy, Pandas (data processing)
+- Gurobi (MILP solver for complementary selection)
+- OpenAI/Anthropic (LLM APIs)
+- LangChain (prompt management)
+- NetworkX, TSPLIB95 (problem utilities)
+
+### 3. Configure LLM
+
+Create an LLM configuration file in `output/llm_config/`. The framework supports multiple backends:
+
+**For Claude Sonnet 4.5** (recommended, used in paper):
+```json
+{
+    "type": "anthropic",
+    "model": "claude-sonnet-4.5",
+    "api_key": "YOUR_API_KEY",
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "max_tokens": 8192
+}
+```
+
+**For OpenAI GPT-4**:
+```json
+{
+    "type": "openai",
+    "model": "gpt-4o",
+    "api_key": "YOUR_API_KEY",
+    "temperature": 0.7,
+    "max_tokens": 4096
+}
+```
+
+**For Azure OpenAI**:
+```json
+{
+    "type": "azure_openai",
+    "api_base": "https://YOUR_RESOURCE.openai.azure.com/",
+    "api_key": "YOUR_API_KEY",
+    "deployment_name": "gpt-4"
+}
+```
+
+### 4. Prepare Data
+
+Download benchmark datasets using the provided script:
+
+```bash
+python scripts/download_data.py
+```
+
+This populates the `data/` directory with standard benchmarks. Alternatively, manually download from:
+
+| Problem | Source |
+|---------|--------|
+| JSSP    | [OR-Library](https://people.brunel.ac.uk/~mastjjb/jeb/orlib/jobshopinfo.html) |
+| TSP     | [TSPLIB](http://comopt.ifi.uni-heidelberg.de/software/TSPLIB95/) |
+| CVRP    | [CVRPLIB](http://vrp.atd-lab.inf.puc-rio.br/index.php/en/) |
+| PSP     | Generated (included) |
+
+---
+
+## Quick Start
+
+### Using Jupyter Notebooks (Recommended)
+
+The framework provides interactive notebooks for each stage:
+
+**Stage One - Component Generation:**
+- `generate_problem_state.ipynb` - Generate state space
+- `generate_action_space.ipynb` - Generate action space  
+- `generate_tool_library.ipynb` - Generate tool library
+- `generate_heuristic.ipynb` - Generate initial heuristics
+
+**Stage Two - Evolution:**
+- `evolve_heuristic.ipynb` - Evolve heuristic portfolios
+
+Simply configure the problem type and LLM settings in each notebook, then run cells sequentially.
+
+### Command-Line Interface
+
+For batch processing or automation:
+
+```bash
+# Stage One: Generate all components for TSP
+python scripts/run_stage_one.py --problem tsp --llm_config output/llm_config/claude.json
+
+# Stage Two: Evolve heuristics with 300s time budget
+python scripts/run_stage_two.py --problem tsp --time_limit 300 --population_size 10
+
+# Evaluate on test set
+python scripts/evaluate.py --problem tsp --test_data data/tsp/test_data
+```
 
 ---
 
