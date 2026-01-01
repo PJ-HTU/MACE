@@ -31,7 +31,7 @@ class BaseEnv:
             self.get_solution_problem_state = load_function(problem_state_file, problem=self.problem, function_name="get_solution_problem_state")
             self.problem_state = self.get_problem_state()
         else:
-            print('problem_state.py 未被正确初始化，无法检查文件是否存在')
+            print('problem_state.py is initializing')
 
 
     @property
