@@ -21,12 +21,12 @@ MACE (Modular Algorithm Construction and Evolution) is a novel framework that le
 ## Table of Contents
 
 - [Framework Overview](#framework-overview)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
 - [Usage Guide](#usage-guide)
 - [Code Organization](#code-organization)
 - [Supported Problems](#supported-problems)
 - [Adding New Problems](#adding-new-problems)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
 - [Citation](#citation)
 
 ---
