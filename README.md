@@ -26,6 +26,7 @@ MACE (Modular Algorithm Construction and Evolution) is a novel framework that le
 - [Adding New Problems](#adding-new-problems)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Human-in-the-Loop Design Patterns](#human-in-the-loop-design-patterns)
 - [Citation](#citation)
 
 ---
@@ -345,6 +346,101 @@ python scripts/run_stage_two.py --problem tsp --time_limit 300 --population_size
 # Evaluate on test set
 python scripts/evaluate.py --problem tsp --test_data data/tsp/test_data
 ```
+
+---
+
+## Human-in-the-Loop Design Patterns
+
+MACE supports two complementary approaches for designing problem components, allowing practitioners to leverage domain expertise while benefiting from LLM automation:
+
+### Approach 1: Manual Design with Domain Knowledge
+
+For practitioners with deep domain expertise, components can be manually designed and directly implemented in the codebase:
+
+**State Space (`problem_state.py`)**
+- Manually define `get_instance_features()` and `get_solution_features()` functions
+- Encode domain-specific insights about problem characteristics
+- Example: For JSSP, experts might include machine load balance, critical path metrics, etc.
+
+**Action Space (`components.py`)**
+- Manually implement the `Operator` class with domain-informed operations
+- Design constructive and improvement actions based on proven heuristics
+- Example: For TSP, implement 2-opt, 3-opt, or nearest neighbor insertion operators
+
+**Tool Library (`env.py`)**
+- Manually code complex domain algorithms as helper methods in the `Env` class
+- Encapsulate expert knowledge that would be difficult for LLMs to derive
+- Example: For CVRP, implement route feasibility checks, savings calculations, or clustering algorithms
+
+**Benefits:**
+- ✅ Full control over component design
+- ✅ Direct incorporation of domain expertise
+- ✅ Guaranteed correctness of critical operations
+- ✅ Faster iteration for experts familiar with the problem
+
+### Approach 2: LLM-Automated Generation
+
+For rapid prototyping or exploring novel problems, MACE can automatically generate all components using LLMs:
+
+**Interactive Notebooks:**
+- `generate_problem_state.ipynb` → Generates state extraction functions
+- `generate_action_space.ipynb` → Generates action/operator definitions  
+- `generate_tool_library.ipynb` → Generates domain-specific helper tools
+- `generate_heuristic.ipynb` → Generates initial heuristic portfolio
+
+**Benefits:**
+- ✅ Rapid bootstrapping for new problems
+- ✅ Exploration of non-obvious design choices
+- ✅ Minimal manual coding required
+- ✅ Effective for problems with limited expert knowledge
+
+### Hybrid Approach (Recommended)
+
+In practice, the most effective strategy combines both approaches:
+
+1. **Start with LLM generation** to quickly explore the design space
+2. **Review and refine** generated components using domain knowledge
+3. **Manually enhance** critical tools or actions based on expert insights
+4. **Iterate** between automated generation and manual refinement
+
+**Example Workflow:**
+```python
+# 1. Generate initial state space with LLM
+run: generate_problem_state.ipynb
+
+# 2. Review output/your_problem/generate_problem_state/problem_state.py
+# 3. Manually refine feature extraction logic based on domain knowledge
+# 4. Move refined version to src/problems/your_problem/problem_state.py
+
+# 5. Repeat for actions and tools
+run: generate_action_space.ipynb
+run: generate_tool_library.ipynb
+
+# 6. Manually enhance critical components
+edit: src/problems/your_problem/components.py  # Add expert-designed operators
+edit: src/problems/your_problem/env.py         # Add domain-specific algorithms
+```
+
+### Design Decision Guidelines
+
+| Scenario | Recommended Approach |
+|----------|---------------------|
+| **Well-studied problem** (JSSP, TSP) | Manual design or hybrid |
+| **Novel problem** (PSP) | LLM generation or hybrid |
+| **Time-critical deployment** | Manual design for critical paths |
+| **Exploratory research** | LLM generation |
+| **Domain expert available** | Hybrid (LLM + expert refinement) |
+| **Limited domain knowledge** | LLM generation |
+
+### File Locations Summary
+
+| Component | Manual Implementation | LLM-Generated Output |
+|-----------|----------------------|---------------------|
+| **State Space** | `src/problems/{problem}/problem_state.py` | `output/{problem}/generate_problem_state/problem_state.py` |
+| **Action Space** | `src/problems/{problem}/components.py` | `output/{problem}/generate_action_space/components.py` |
+| **Tool Library** | `src/problems/{problem}/env.py` | `output/{problem}/generate_tool_library/env.py` |
+
+**Note:** Generated files must be manually reviewed and moved to the `src/problems/{problem}/` directory before running Stage Two evolution.
 
 ---
 
