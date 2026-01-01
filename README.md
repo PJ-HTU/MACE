@@ -258,20 +258,6 @@ Test generated heuristics on validation instances during evolution, then evaluat
 
 ---
 
-## Experimental Configuration
-
-**Reproducing Paper Results:**
-
-The paper uses Claude Sonnet 4.5 with temperature 0.7, top-p 0.95, and max tokens 8192. Evolution runs with portfolio size n=10 and maximum iterations Nₘₐₓ=100. The EI operator attempts up to 3 efficiency improvements before discarding timeout heuristics. Smoke tests allow 3 repair attempts for code validation.
-
-Time budgets vary by problem to reflect computational complexity differences. For each problem, Stage Two executes independently under multiple budget settings to generate portfolios spanning the quality-time spectrum.
-
-Test sets contain 15 instances per problem (5 small, 5 medium, 5 large scale instances). Solution quality is measured as percentage gap from known optimal solutions, or relative to best-found solutions for problems without established optima.
-
-**Hardware**: Experiments run on Intel Xeon E5-2680 v4 @ 2.4GHz with 64GB RAM.
-
----
-
 ## Installation
 
 ### 1. Clone the Repository
@@ -302,7 +288,7 @@ pip install -r requirements.txt
 
 Create an LLM configuration file in `output/llm_config/`. The framework supports multiple backends:
 
-**For Claude Sonnet 4.5** (recommended, used in paper):
+**For Claude Sonnet 4.5**:
 ```json
 {
     "type": "anthropic",
@@ -314,36 +300,9 @@ Create an LLM configuration file in `output/llm_config/`. The framework supports
 }
 ```
 
-**For OpenAI GPT-4**:
-```json
-{
-    "type": "openai",
-    "model": "gpt-4o",
-    "api_key": "YOUR_API_KEY",
-    "temperature": 0.7,
-    "max_tokens": 4096
-}
-```
-
-**For Azure OpenAI**:
-```json
-{
-    "type": "azure_openai",
-    "api_base": "https://YOUR_RESOURCE.openai.azure.com/",
-    "api_key": "YOUR_API_KEY",
-    "deployment_name": "gpt-4"
-}
-```
-
 ### 4. Prepare Data
 
-Download benchmark datasets using the provided script:
-
-```bash
-python scripts/download_data.py
-```
-
-This populates the `data/` directory with standard benchmarks. Alternatively, manually download from:
+The datasets are the `data/` directory with standard benchmarks. manually download from:
 
 | Problem | Source |
 |---------|--------|
@@ -401,36 +360,3 @@ If you use MACE in your research, please cite:
   url={[Paper URL]}
 }
 ```
-
----
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## Acknowledgments
-
-- Benchmark datasets from OR-Library, TSPLIB, and CVRPLIB
-- Gurobi Optimization for MILP solver
-- Anthropic Claude and OpenAI GPT for LLM capabilities
-
----
-
-## Contact
-
-For questions or issues:
-- **GitHub Issues**: [https://github.com/YOUR_USERNAME/MACE/issues](https://github.com/YOUR_USERNAME/MACE/issues)
-- **Email**: your.email@institution.edu
-
----
-
-## Changelog
-
-### v1.0.0 (2025-01-01)
-- Initial release
-- Support for JSSP, TSP, CVRP, PSP
-- Complete Stage One and Stage Two implementation
-- Interactive Jupyter notebooks
-- Paper results reproduction capability
